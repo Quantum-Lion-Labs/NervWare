@@ -9,8 +9,7 @@
     "changelogUrl": "https://github.com/Quantum-Lion-Labs/NervWare/wiki",
     "licensesUrl": "https://github.com/Quantum-Lion-Labs/NervWare/wiki",
     "dependencies": {
-      "com.unity.addressables": "2.2.2",
-      "today.comes.saintsfield": "3.30.1"
+      "com.unity.addressables": "2.2.2"
    },
    "keywords": [
       "modding",
