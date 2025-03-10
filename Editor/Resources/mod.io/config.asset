@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94c96ecaeebcc024088ca4eb633ea8d2, type: 3}
+  m_Name: config
+  m_EditorClassIdentifier: 
+  serverSettings:
+    serverURL: https://g-8613.modapi.io/v1
+    gameId: 8613
+    gameKey: da0a6a71842bf8791ac231f59e9df34c
+    languageCode: en
+    disableUploads: 0
+    useCommandLineArgumentOverrides: 0
+    fallbackToEmailAuth: 0
+  uiSettings:
+    ShowMonetizationUI: 0
+    ShowEnabledModToggle: 0
+  autoInitializePlugin: 1
+  analyticsPrivateKey: 
+  playerLogLevel: 0
+  editorLogLevel: 0
+  iosConfiguration:
+    logLevel: 0
+    userPortal: 1
+    defaultPortal: 0
+    requestCacheLimitKB: 0
+    writeSpeedInKbPerSecond: 0
+    bytesPerWrite: 0
+    writeSpeedReductionThreshold: 0.75
+  standaloneConfiguration:
+    logLevel: 0
+    userPortal: 0
+    defaultPortal: 0
+    requestCacheLimitKB: 0
+    writeSpeedInKbPerSecond: 0
+    bytesPerWrite: 0
+    writeSpeedReductionThreshold: 0.75
+  androidConfiguration:
+    logLevel: 0
+    userPortal: 5
+    defaultPortal: 0
+    requestCacheLimitKB: 0
+    writeSpeedInKbPerSecond: 0
+    bytesPerWrite: 0
+    writeSpeedReductionThreshold: 0.75
+  switchConfiguration:
+    logLevel: 0
+    userPortal: 7
+    defaultPortal: 0
+    requestCacheLimitKB: 0
+    writeSpeedInKbPerSecond: 0
+    bytesPerWrite: 0
+    writeSpeedReductionThreshold: 0.75
+  gameCoreConfiguration:
+    logLevel: 0
+    userPortal: 11
+    defaultPortal: 0
+    requestCacheLimitKB: 0
+    writeSpeedInKbPerSecond: 0
+    bytesPerWrite: 0
+    writeSpeedReductionThreshold: 0.75
+  playstationConfiguration:
+    logLevel: 0
+    userPortal: 9
+    defaultPortal: 0
+    requestCacheLimitKB: 0
+    writeSpeedInKbPerSecond: 0
+    bytesPerWrite: 0
+    writeSpeedReductionThreshold: 0.75
+  editorConfiguration:
+    logLevel: 0
+    userPortal: 0
+    defaultPortal: 0
+    requestCacheLimitKB: 0
+    writeSpeedInKbPerSecond: 0
+    bytesPerWrite: 0
+    writeSpeedReductionThreshold: 0.75

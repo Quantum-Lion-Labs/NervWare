@@ -1,0 +1,8 @@
+.idea
+/Samples
+/Samples.meta
+/*.html
+/*.html.meta
+/*.pdf
+/*.pdf.meta
+.DS_Store

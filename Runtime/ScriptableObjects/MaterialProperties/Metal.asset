@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 820ec6a5bde88c440b0cb73457efe2ae, type: 3}
+  m_Name: Metal
+  m_EditorClassIdentifier: 
+  decalPrefab:
+  - {fileID: 3999907528169576385, guid: 041f64d7bc6e82a4f8aa7f7d91a31438, type: 3}
+  - {fileID: 4458888194215088260, guid: 273c9fdc130436e409c6f9d650bf5a33, type: 3}
+  - {fileID: 4504650418774363838, guid: 27df02a2c6c3a6c4a80f77ab9d2b9003, type: 3}
+  - {fileID: 2632853530951579261, guid: 313762adfca68c543a6695e895601518, type: 3}
+  impactPrefab:
+  - {fileID: 7077355519987932895, guid: 579357df66620f747a0c8f99cabbd10e, type: 3}
+  - {fileID: 7077355519987932895, guid: 6d813d766b473a04680efdb264997f8d, type: 3}
+  decalSize: 0.1
+  decalPositioningOffset: 0.0001
+  surfaceType: 10
+  surfaceHardness: 3
+  canBeStabbed: 0
+  stabDepth: 0.01
+  stabDamper: 20000
+  stabSolidObjectDamper: 1000
+  spawnDecal: 1
+  spawnImpact: 1
+  stabSound:
+    Guid:
+      Data1: -1787060326
+      Data2: 1200187359
+      Data3: 862420111
+      Data4: -1919270771
+    Path: event:/Surfaces/Hard Item/Dirt Stab
