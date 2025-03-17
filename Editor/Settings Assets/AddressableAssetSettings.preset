@@ -202,7 +202,7 @@ Preset:
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: m_BuildSettings.m_BundleBuildPath
-    value: E:/UnityProjects/NervWareSDK/Assets\Mods\My Mod
+    value: 
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: m_ProfileSettings.m_Profiles.Array.size
@@ -238,7 +238,7 @@ Preset:
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: m_ProfileSettings.m_Profiles.Array.data[0].m_Values.Array.data[1].m_Value
-    value: E:/UnityProjects/NervWareSDK/Assets\../Mods/skiobbo/StandaloneWindows64
+    value: 
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: m_ProfileSettings.m_Profiles.Array.data[0].m_Values.Array.data[2].m_Id
