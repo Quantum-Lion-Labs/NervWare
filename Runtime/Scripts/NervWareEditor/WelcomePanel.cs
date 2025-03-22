@@ -7,17 +7,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-[InitializeOnLoad]
 public class WelcomePanel : EditorWindow
 {
-    static WelcomePanel()
-    {
-        if (!SessionState.GetBool("WelcomePanelEnabled", false))
-        {
-            EditorApplication.update += EditorUpdate;
-        }
-    }
-
     private static void EditorUpdate()
     {
         ShowExample();
@@ -45,6 +36,7 @@ public class WelcomePanel : EditorWindow
     private TextField emailTextField;
     private Button submitEmailButton;
     private TextField authTextField;
+    private Label validationLabel;
     private Button submitAuthButton;
     private Button validateButton;
     
@@ -74,6 +66,7 @@ public class WelcomePanel : EditorWindow
         emailContainer = root.Q<VisualElement>("CodeRequestContainer");
         authContainer = root.Q<VisualElement>("CodeSubmitContainer");
         
+        validationLabel = root.Q<Label>("ValidateText");
         
         // Get the text box
         emailTextField = root.Q<TextField>("EmailTextInput");
@@ -81,7 +74,9 @@ public class WelcomePanel : EditorWindow
         
         authTextField = root.Q<TextField>("AuthCodeTextInput");
         submitAuthButton = root.Q<Button>("SubmitCode");
-
+        
+        UpdateValidationButtons();
+        
         submitEmailButton.clicked += RequestAuthCode;
         submitAuthButton.clicked += SubmitAuthCode;
         logoutButton.clicked += Logout;
@@ -95,6 +90,7 @@ public class WelcomePanel : EditorWindow
     private void ValidateProject()
     {
         NervWareValidator.ValidateAll();
+        UpdateValidationButtons();
     }
 
     private void CheckFonts(VisualElement element)
@@ -109,6 +105,22 @@ public class WelcomePanel : EditorWindow
         }
     }
 
+    private void UpdateValidationButtons()
+    {
+        bool hasValidated = EditorPrefs.GetBool("HasValidated", false);
+        if (hasValidated)
+        {
+            validationLabel.text = "Project Settings Injected.";
+            validateButton.text = "Re-Inject";
+        }
+        else
+        {
+            validateButton.text = "Inject";
+            validationLabel.text = "Project Settings Not Injected.";
+        }
+
+    }
+
     private void ResetUI()
     {
         loginLabel.text = $"Log in to Mod.io";
@@ -119,6 +131,11 @@ public class WelcomePanel : EditorWindow
 
     private void OnEnable()
     {
+        if (!SessionState.GetBool("WelcomePanelEnabled", false))
+        {
+            EditorApplication.update += EditorUpdate;
+        }
+
         Result result = ModIOUnity.InitializeForUser("default");
         if (!result.Succeeded()) {
             Debug.LogError($"ModIO plugin failed to initialize. {result.message}");

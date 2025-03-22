@@ -86,7 +86,6 @@ namespace NervWareSDK.Packaging
 
             string buildPath = Path.Combine(Application.dataPath,
                 $"../Mods/{_data.modName}/{EditorUserBuildSettings.activeBuildTarget.ToString()}");
-            Debug.Log($"<color=orange>{buildPath}</color>");
 
             if (Directory.Exists(buildPath))
             {
@@ -99,9 +98,7 @@ namespace NervWareSDK.Packaging
             {
                 group.RemoveAssetEntry(addressableAssetEntry);
             }
-            Debug.Log(AddressableAssetSettingsDefaultObject.Settings);
             var entry = AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(guid, group, false, false);
-            Debug.Log($"<color=orange>JSON !!{AddressableAssetSettingsDefaultObject.Settings.EnableJsonCatalog}</color>");
             
             entry.address = guid;
             entry.SetLabel(_data.modType.ToString(), true, true, false);
@@ -116,9 +113,9 @@ namespace NervWareSDK.Packaging
             AddressableAssetSettingsDefaultObject.Settings.profileSettings.SetValue(
                 AddressableAssetSettingsDefaultObject.Settings.activeProfileId,
                 "Local.BuildPath", buildPath);
+            AddressableAssetSettingsDefaultObject.Settings.buildSettings.bundleBuildPath = buildPath;
             AddressableAssetSettingsDefaultObject.Settings.ActivePlayerDataBuilder.ClearCachedData();
             BuildCache.PurgeCache(false);
-            Debug.Log($"<color=green>{AddressableAssetSettingsDefaultObject.Settings.EnableJsonCatalog}");
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
             bool success = string.IsNullOrEmpty(result.Error);
 

@@ -27,6 +27,19 @@ namespace NervWareSDK.Packaging
                 return;
             }
 
+            if (_data.logo == null)
+            {
+                EditorUtility.DisplayDialog("Validation Error", "There is no logo assigned!", "ok");
+                return;
+            }
+            
+            if (_data.logo.width < 512 || _data.logo.height < 288)
+            {
+                EditorUtility.DisplayDialog("Validation Error",
+                    "Mod logo must be at least 512x288", "ok");
+                return;
+            }
+
             if (string.IsNullOrEmpty(_data.modName))
             {
                 EditorUtility.DisplayDialog("Validation Error", "The mod name is empty!",
@@ -62,10 +75,12 @@ namespace NervWareSDK.Packaging
                 return;
             }
 
+            var logo = MakeTempLogo(_data.logo);
+
 
             ModProfileDetails details = new ModProfileDetails
             {
-                logo = _data.logo,
+                logo = logo,
                 name = _data.modName,
                 summary = _data.modSummary,
                 description = _data.modDescription,
@@ -83,8 +98,10 @@ namespace NervWareSDK.Packaging
                         _data.progress = handle.Progress;
                         _data.progressTitle = "Creating Mod Profile";
                     }
+
                     await Task.Delay(1000);
                 }
+
                 if (!resultCreate.Result.result.Succeeded())
                 {
                     EditorUtility.DisplayDialog("Mod Upload Failed",
@@ -96,6 +113,32 @@ namespace NervWareSDK.Packaging
                 }
 
                 _data.modIdCache = resultCreate.Result.value;
+            }
+            else
+            {
+                details.modId = (ModId?)_data.modIdCache;
+                var updateCreate = ModIOUnityAsync.EditModProfile(details);
+                while (!updateCreate.IsCompleted)
+                {
+                    var handle = ModIOUnity.GetCurrentUploadHandle();
+                    if (handle != null)
+                    {
+                        _data.progress = handle.Progress;
+                        _data.progressTitle = "Updating Mod Profile";
+                    }
+
+                    await Task.Delay(1000);
+                }
+
+                if (!updateCreate.Result.Succeeded())
+                {
+                    EditorUtility.DisplayDialog("Mod Upload Failed",
+                        $"Update Mod Profile failed: {updateCreate.Result.message} {updateCreate.Result.apiMessage}",
+                        "ok");
+                    _data.progress = 0f;
+                    _data.progressTitle = "";
+                    return;
+                }
             }
 
             ModfileDetails windowsFile = new ModfileDetails
@@ -173,6 +216,22 @@ namespace NervWareSDK.Packaging
                 "Ok");
             _data.progress = 0f;
             _data.progressTitle = "";
+        }
+
+        private static Texture2D MakeTempLogo(Texture2D texture)
+        {
+            RenderTexture renderTexture =
+                RenderTexture.GetTemporary(texture.width, texture.height, 0, RenderTextureFormat.Default,
+                    RenderTextureReadWrite.Linear);
+            Graphics.Blit(texture, renderTexture);
+            RenderTexture previous = RenderTexture.active;
+            RenderTexture.active = renderTexture;
+            Texture2D readable = new Texture2D(texture.width, texture.height);
+            readable.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
+            readable.Apply();
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(renderTexture);
+            return readable;
         }
 
         private static string GetPlatform(BuildTarget target)

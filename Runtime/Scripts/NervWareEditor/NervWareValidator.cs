@@ -25,9 +25,18 @@ namespace NervWareSDK.Editor
 
         public static void ValidateAll()
         {
+            if (!EditorUtility.DisplayDialog("Project Injection",
+                    "WARNING: This will overwrite all of your project settings. " +
+                    "Are you sure you want to continue?",
+                    "Yes", "No"))
+            {
+                return;
+            }
+
             try
             {
                 SetupAddressablesSettings();
+                SetupProjectPreferences();
                 SetupGraphicsSettings();
                 SetupURPProjectSettings();
                 SetupPlayerSettings();
@@ -36,9 +45,16 @@ namespace NervWareSDK.Editor
                 SetupQualitySettings();
                 SetupSaintsField();
                 EditorUtility.RequestScriptReload();
-                EditorUtility.DisplayDialog("Project Validation",
-                    "Validation completed successfully!", "OK");
+                EditorUtility.DisplayDialog("Project Injection",
+                    "Injection completed successfully!", "OK");
                 AssetDatabase.Refresh();
+                EditorPrefs.SetBool("HasValidated", true);
+                if (EditorUtility.DisplayDialog("Project Injection", "You now need to restart your project" +
+                                                                     " for the NervWare SDK to be fully setup. " +
+                                                                     "Would you like to restart now?", "Yes", "No"))
+                {
+                    EditorApplication.OpenProject(Directory.GetCurrentDirectory());
+                }
             }
             catch (Exception e)
             {
@@ -46,6 +62,20 @@ namespace NervWareSDK.Editor
                 EditorUtility.DisplayDialog("Project Validation",
                     $"A problem occured while validating: {e.Message}. Please contact QLL for support.",
                     "OK");
+            }
+        }
+
+        public static void SetupProjectPreferences()
+        {
+            var type = typeof(ProjectConfigData).GetProperty("AutoOpenAddressablesReport",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            if (type != null)
+            {
+                type.SetValue(null, false);
+            }
+            else
+            {
+                Debug.Log("No AutoOpenAddressablesReport found.");
             }
         }
 
@@ -85,7 +115,7 @@ namespace NervWareSDK.Editor
             }
 
             Directory.CreateDirectory(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder);
-       
+
             var settings = AddressableAssetSettings.Create(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
                 "AdddressableAssetSettings", true, true);
             AddressableAssetSettingsDefaultObject.Settings = settings;
@@ -105,6 +135,7 @@ namespace NervWareSDK.Editor
                     settings.RemoveGroup(group);
                 }
             }
+
             if (Directory.Exists(settings.DataBuilderFolder))
             {
                 AssetDatabase.DeleteAsset(settings.DataBuilderFolder);
@@ -119,7 +150,7 @@ namespace NervWareSDK.Editor
             {
                 AssetDatabase.DeleteAsset(settings.GroupTemplateFolder);
             }
-        
+
             PlayerPrefs.DeleteKey(Addressables.kAddressablesRuntimeDataPath);
             Preset addressableSettingsPreset = AssetDatabase.LoadAssetAtPath<Preset>(NervWarePackageDirectory +
                 "/AddressableAssetSettings.preset");
@@ -134,7 +165,7 @@ namespace NervWareSDK.Editor
             {
                 settings.RemoveGroupTemplateObject(i);
             }
-            
+
             AddressableAssetSettingsDefaultObject.Settings = settings;
             RemoveMissingGroupReferences();
             settings = AddressableAssetSettingsDefaultObject.Settings;
@@ -162,11 +193,24 @@ namespace NervWareSDK.Editor
             settings.DefaultGroup.AddSchema(schema);
             settings.DefaultGroup.AddSchema(schema2);
             settings.EnableJsonCatalog = true;
+
+            string buildPath = Path.Combine(Application.dataPath,
+                $"../Mods/");
+            if (!Directory.Exists(buildPath))
+            {
+                Directory.CreateDirectory(buildPath);
+            }
+
+            settings.profileSettings.SetValue(settings.activeProfileId, "Local.BuildPath", buildPath);
+            settings.profileSettings.SetValue(settings.activeProfileId, "Local.LoadPath",
+                "{AddressableVariables.LoadPath}/");
+            settings.ActivePlayerDataBuilder.ClearCachedData();
             AddressablesRuntimeProperties.ClearCachedPropertyValues();
             AddressableAssetSettingsDefaultObject.Settings = settings;
             AddressableAwakeForce();
+            AssetDatabase.SaveAssets();
         }
-        
+
         private static bool RemoveMissingGroupReferences()
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
@@ -181,7 +225,8 @@ namespace NervWareSDK.Editor
 
             if (missingGroupsIndices.Count > 0)
             {
-                Debug.Log("Addressable settings contains " + missingGroupsIndices.Count + " group reference(s) that are no longer there. Removing reference(s).");
+                Debug.Log("Addressable settings contains " + missingGroupsIndices.Count +
+                          " group reference(s) that are no longer there. Removing reference(s).");
                 for (int i = missingGroupsIndices.Count - 1; i >= 0; i--)
                     groups.RemoveAt(missingGroupsIndices[i]);
                 AddressableAssetSettingsDefaultObject.Settings = settings;
