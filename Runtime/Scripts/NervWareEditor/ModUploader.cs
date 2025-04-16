@@ -19,10 +19,9 @@ namespace NervWareSDK.Packaging
         public async Task Upload()
         {
             //TODO: better validation
-            //TODO: re-uploads
-            if (_data.prefab == null)
+            if (_data.prefab == null && _data.scene == null)
             {
-                EditorUtility.DisplayDialog("Validation Error", "There is no prefab assigned!",
+                EditorUtility.DisplayDialog("Validation Error", "There is no prefab or scene assigned!",
                     "ok");
                 return;
             }
@@ -32,7 +31,7 @@ namespace NervWareSDK.Packaging
                 EditorUtility.DisplayDialog("Validation Error", "There is no logo assigned!", "ok");
                 return;
             }
-            
+
             if (_data.logo.width < 512 || _data.logo.height < 288)
             {
                 EditorUtility.DisplayDialog("Validation Error",
@@ -49,34 +48,43 @@ namespace NervWareSDK.Packaging
 
             if (string.IsNullOrEmpty(_data.androidBuildPath))
             {
-                EditorUtility.DisplayDialog("Validation Error", "There is no android path assigned!",
+                EditorUtility.DisplayDialog("Validation Error", "There is no android path assigned! " +
+                                                                "Try re-building.",
                     "ok");
                 return;
             }
 
             if (string.IsNullOrEmpty(_data.windowsBuildPath))
             {
-                EditorUtility.DisplayDialog("Validation Error", "There is no windows path assigned!",
+                EditorUtility.DisplayDialog("Validation Error", "There is no windows path assigned!" +
+                                                                " Try re-building.",
                     "ok");
                 return;
             }
 
             if (!Directory.Exists(_data.androidBuildPath))
             {
-                EditorUtility.DisplayDialog("Validation Error", "There are no mods in the android path!",
+                EditorUtility.DisplayDialog("Validation Error", "There are no mods in the android path! " +
+                                                                "Try re-building.",
                     "ok");
                 return;
             }
 
             if (!Directory.Exists(_data.windowsBuildPath))
             {
-                EditorUtility.DisplayDialog("Validation Error", "There are no mods in the windows path!",
+                EditorUtility.DisplayDialog("Validation Error", "There are no mods in the windows path! " +
+                                                                "Try re-building.",
                     "ok");
                 return;
             }
 
             var logo = MakeTempLogo(_data.logo);
-
+            Debug.Log("Mod info valid, beginning upload...");
+            Bounds? bounds = null;
+            if (_data.prefab != null)
+            {
+                bounds = GetBounds();
+            }
 
             ModProfileDetails details = new ModProfileDetails
             {
@@ -84,12 +92,15 @@ namespace NervWareSDK.Packaging
                 name = _data.modName,
                 summary = _data.modSummary,
                 description = _data.modDescription,
+                tags = new[] { _data.modType.ToString() },
+                metadata = bounds.HasValue ? bounds.Value.size.ToString() : "" 
             };
 
             if (_data.modIdCache <= 0)
             {
                 Task<ResultAnd<ModId>> resultCreate =
                     ModIOUnityAsync.CreateModProfile(ModIOUnity.GenerateCreationToken(), details);
+                int progressId = Progress.Start("Create Mod Profile");
                 while (!resultCreate.IsCompleted)
                 {
                     var handle = ModIOUnity.GetCurrentUploadHandle();
@@ -97,10 +108,12 @@ namespace NervWareSDK.Packaging
                     {
                         _data.progress = handle.Progress;
                         _data.progressTitle = "Creating Mod Profile";
+                        Progress.Report(progressId, handle.Progress);
                     }
 
-                    await Task.Delay(1000);
+                    await Task.Yield();
                 }
+                Progress.Remove(progressId);
 
                 if (!resultCreate.Result.result.Succeeded())
                 {
@@ -113,11 +126,14 @@ namespace NervWareSDK.Packaging
                 }
 
                 _data.modIdCache = resultCreate.Result.value;
+                Debug.Log("Created Mod Profile");
             }
             else
             {
+                Debug.Log("Updating Mod Profile...");
                 details.modId = (ModId?)_data.modIdCache;
                 var updateCreate = ModIOUnityAsync.EditModProfile(details);
+                int progressId = Progress.Start("Update Mod Profile");
                 while (!updateCreate.IsCompleted)
                 {
                     var handle = ModIOUnity.GetCurrentUploadHandle();
@@ -125,10 +141,12 @@ namespace NervWareSDK.Packaging
                     {
                         _data.progress = handle.Progress;
                         _data.progressTitle = "Updating Mod Profile";
+                        Progress.Report(progressId, handle.Progress);
                     }
 
-                    await Task.Delay(1000);
+                    await Task.Yield();
                 }
+                Progress.Remove(progressId);
 
                 if (!updateCreate.Result.Succeeded())
                 {
@@ -139,6 +157,7 @@ namespace NervWareSDK.Packaging
                     _data.progressTitle = "";
                     return;
                 }
+                Debug.Log("Updated mod profile");
             }
 
             ModfileDetails windowsFile = new ModfileDetails
@@ -153,7 +172,10 @@ namespace NervWareSDK.Packaging
                 metadata = _data.modMetaData
             };
 
+            Debug.Log("Uploading Windows File");
             var uploadTask = ModIOUnityAsync.UploadModfile(windowsFile);
+            _data.progress = 0.01f;
+            int windowsProgress = Progress.Start("Upload Windows Modfile");
             while (!uploadTask.IsCompleted)
             {
                 var handle = ModIOUnity.GetCurrentUploadHandle();
@@ -161,11 +183,14 @@ namespace NervWareSDK.Packaging
                 {
                     _data.progress = handle.Progress;
                     _data.progressTitle = "Uploading Windows Build";
+                    Progress.Report(windowsProgress, handle.Progress);
                 }
 
-                await Task.Delay(100);
+                await Task.Yield();
             }
+            Progress.Remove(windowsProgress);
 
+            
             if (!uploadTask.Result.Succeeded())
             {
                 EditorUtility.DisplayDialog("Mod Upload Failed",
@@ -175,7 +200,10 @@ namespace NervWareSDK.Packaging
                 _data.progressTitle = "";
                 return;
             }
+            
+            Debug.Log("Uploaded Windows File");
 
+            
             ModfileDetails androidFile = new ModfileDetails
             {
                 modId = new ModId(_data.modIdCache),
@@ -188,7 +216,10 @@ namespace NervWareSDK.Packaging
                 metadata = _data.modMetaData
             };
 
+            Debug.Log("Uploading Android File");
             uploadTask = ModIOUnityAsync.UploadModfile(androidFile);
+            _data.progress = 0.01f;
+            int androidProgress = Progress.Start("Upload Android Modfile");
             while (!uploadTask.IsCompleted)
             {
                 var handle = ModIOUnity.GetCurrentUploadHandle();
@@ -196,10 +227,12 @@ namespace NervWareSDK.Packaging
                 {
                     _data.progress = handle.Progress;
                     _data.progressTitle = "Uploading Android Build";
+                    Progress.Report(androidProgress, handle.Progress);
                 }
 
-                await Task.Delay(100);
+                await Task.Yield();
             }
+            Progress.Remove(androidProgress);
 
             if (!uploadTask.Result.Succeeded())
             {
@@ -210,6 +243,7 @@ namespace NervWareSDK.Packaging
                 _data.progressTitle = "";
                 return;
             }
+            Debug.Log("Uploaded Android File");
 
             EditorUtility.DisplayDialog("Mod Upload Finished",
                 "Mod uploaded successfully!",
@@ -233,7 +267,28 @@ namespace NervWareSDK.Packaging
             RenderTexture.ReleaseTemporary(renderTexture);
             return readable;
         }
-
+        
+        private Bounds GetBounds()
+        {
+            if (_data.prefab == null)
+            {
+                return new Bounds();
+            }
+            Bounds bounds = new Bounds();
+            var rot = _data.prefab.transform.rotation;
+            _data.prefab.transform.rotation = Quaternion.identity;
+            var colliders = _data.prefab.GetComponentsInChildren<Collider>();
+            foreach (var collider in colliders)
+            {
+                if (collider == null) continue;
+                if (!collider.enabled || !collider.gameObject.activeSelf || collider.isTrigger) continue;
+                bounds.Encapsulate(collider.bounds);
+            }
+            _data.prefab.transform.rotation = rot;
+            return bounds;
+        }
+        
+        
         private static string GetPlatform(BuildTarget target)
         {
             switch (target)

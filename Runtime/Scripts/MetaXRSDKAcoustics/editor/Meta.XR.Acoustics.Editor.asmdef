@@ -1,0 +1,18 @@
+{
+    "name": "Meta.XR.Acoustics.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:81205f4afbfcb4840b2bbc2467f91445"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -12,6 +12,7 @@ using UnityEditor.Presets;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.Initialization;
+using UnityEngine.Rendering;
 
 namespace NervWareSDK.Editor
 {
@@ -272,6 +273,19 @@ namespace NervWareSDK.Editor
 
             importPackage = importPackage.Replace("{NERVBOX_GLOBAL_SETTINGS}", guid);
             File.WriteAllText(localFilePath, importPackage);
+            UnityEngine.Rendering.GraphicsSettings.TryGetCurrentRenderPipelineGlobalSettings(out var asset);
+            var globalSettingsPath = AssetDatabase.GetAssetPath(asset);
+            if (string.IsNullOrEmpty(globalSettingsPath))
+            {
+                throw new FileNotFoundException($"Unable to find global settings asset at {globalSettingsPath}!");
+            }
+
+            reader = new StreamReader(globalSettingsPath);
+            string globalSettingsContent = reader.ReadToEnd();
+            reader.Close();
+            globalSettingsContent = globalSettingsContent.Replace("m_ProbeVolumeDisableStreamingAssets: 0",
+                "m_ProbeVolumeDisableStreamingAssets: 1");
+            File.WriteAllText(globalSettingsPath, globalSettingsContent);
         }
 
         public static void SetupPlayerSettings()

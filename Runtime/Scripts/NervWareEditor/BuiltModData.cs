@@ -40,10 +40,14 @@ namespace NervWareSDK
         [LayoutEnd("Mod Data")]
         [LayoutStart("Mod Assets", ELayout.TitleBox)]
         [InfoBox("Setup your mod assets here.")]
+        [ShowIf(nameof(modType), ModType.Spawnable)]
         [GUIColor(EColor.Cyan)]
         [AssetPreview(groupBy: "Previews")]
         [ValidateInput(nameof(ValidatePrefab))]
         public GameObject prefab;
+        [AssetPreview(groupBy: "Previews")]
+        [ShowIf(nameof(modType), ModType.Map)]
+        public SceneAsset scene;
 
         [AssetPreview(groupBy: "Previews")] [PostFieldButton(nameof(GenerateTempLogo))]
         public Texture2D logo;
