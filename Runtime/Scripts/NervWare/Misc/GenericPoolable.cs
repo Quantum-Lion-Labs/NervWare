@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Realmsmith.Misc
+namespace NervBox.Misc
 {
     public class GenericPoolable : MonoBehaviour, IPoolable
     {

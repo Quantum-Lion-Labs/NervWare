@@ -7,7 +7,7 @@ using SaintsField;
 using SaintsField.Playa;
 using UnityEngine;
 
-namespace Realmsmith.Interaction
+namespace NervBox.Interaction
 {
     public enum SlotType
     {
@@ -23,7 +23,7 @@ namespace Realmsmith.Interaction
         [Required("A grip is required!")]
         [Tooltip("The grip required to be held to slot the item.")]
         [SerializeField]
-        private ASGripBase primaryGrip;
+        private NBGripBase primaryGrip;
 
         [Required("The start point must be defined.")]
         [SerializeField] [Tooltip("The start point of the length of the object.")]

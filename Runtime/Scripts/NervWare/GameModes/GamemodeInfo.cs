@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Realmsmith.GameMode
+namespace NervBox.GameMode
 {
     public class GamemodeInfo : MonoBehaviour
     {

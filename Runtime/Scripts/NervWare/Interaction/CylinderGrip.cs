@@ -3,13 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using SaintsField;
 using SaintsField.Playa;
-using Realmsmith.Tools.HandPoser;
+using NervBox.Tools.HandPoser;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Realmsmith.Interaction
+namespace NervBox.Interaction
 {
-    public class CylinderGrip : ASGripBase
+    public class CylinderGrip : NBGripBase
     {
         [SerializeField] private float height;
         [SerializeField] private bool allowAnchorUpdating = false;

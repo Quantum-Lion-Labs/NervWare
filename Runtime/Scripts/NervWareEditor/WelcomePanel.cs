@@ -9,11 +9,17 @@ using UnityEngine.UIElements;
 
 public class WelcomePanel : EditorWindow
 {
+    [InitializeOnLoadMethod]
     private static void EditorUpdate()
     {
-        ShowExample();
-        SessionState.SetBool("WelcomePanelEnabled", true);
-        EditorApplication.update -= EditorUpdate;
+        EditorApplication.delayCall += () =>
+        {
+            if (!SessionState.GetBool("WelcomePanelEnabled", false))
+            {
+                ShowExample();
+                SessionState.SetBool("WelcomePanelEnabled", true);
+            }
+        };
     }
     
     [SerializeField]
@@ -131,11 +137,7 @@ public class WelcomePanel : EditorWindow
 
     private void OnEnable()
     {
-        if (!SessionState.GetBool("WelcomePanelEnabled", false))
-        {
-            EditorApplication.update += EditorUpdate;
-        }
-
+       
         Result result = ModIOUnity.InitializeForUser("default");
         if (!result.Succeeded()) {
             Debug.LogError($"ModIO plugin failed to initialize. {result.message}");

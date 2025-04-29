@@ -4,9 +4,9 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
-namespace Realmsmith.Interaction
+namespace NervBox.Interaction
 {
-    public partial class GenericGrip : ASGripBase
+    public partial class GenericGrip : NBGripBase
     {
         
     }

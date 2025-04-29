@@ -11,7 +11,7 @@ using UnityEngine;
 using UnityEngine.Scripting;
 using UnityEngine.Serialization;
 
-namespace Realmsmith.Interaction
+namespace NervBox.Interaction
 {
     public sealed class NetworkedInteractable : NetworkBehaviour
     {

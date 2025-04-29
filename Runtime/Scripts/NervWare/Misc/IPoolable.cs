@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Realmsmith.Misc
+namespace NervBox.Misc
 {
     public interface IPoolable
     {

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using Realmsmith.Interaction;
+using NervBox.Interaction;
 using SaintsField;
 using UnityEngine;
 
-namespace Realmsmith.SDK
+namespace NervBox.SDK
 {
     [DefaultExecutionOrder(short.MinValue - 10)]
     public class ModdedSceneData : MonoBehaviour

@@ -3,7 +3,7 @@ using SaintsField;
 using SaintsField.Playa;
 using UnityEngine;
 
-namespace Realmsmith.Tools.HandPoser
+namespace NervBox.Tools.HandPoser
 {
     public enum HandType
     {

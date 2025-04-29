@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Realmsmith.Misc
+namespace NervBox.Misc
 {
     /// <summary>
     /// Plays the assigned serialized particle system whenever the gameObject is activated.

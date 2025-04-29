@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Scripting;
 
 [assembly: AlwaysLinkAssembly]
-namespace Realmsmith
+namespace NervBox
 {
     [Preserve]
     public class RealmsmithAssembly 
