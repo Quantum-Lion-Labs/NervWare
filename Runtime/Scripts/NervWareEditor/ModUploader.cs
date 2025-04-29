@@ -80,11 +80,7 @@ namespace NervWareSDK.Packaging
 
             var logo = MakeTempLogo(_data.logo);
             Debug.Log("Mod info valid, beginning upload...");
-            Bounds? bounds = null;
-            if (_data.prefab != null)
-            {
-                bounds = GetBounds();
-            }
+
 
             ModProfileDetails details = new ModProfileDetails
             {
@@ -92,8 +88,7 @@ namespace NervWareSDK.Packaging
                 name = _data.modName,
                 summary = _data.modSummary,
                 description = _data.modDescription,
-                tags = new[] { _data.modType.ToString() },
-                metadata = bounds.HasValue ? bounds.Value.size.ToString() : "" 
+                tags = new[] { _data.modType.ToString() }
             };
 
             if (_data.modIdCache <= 0)
@@ -267,28 +262,7 @@ namespace NervWareSDK.Packaging
             RenderTexture.ReleaseTemporary(renderTexture);
             return readable;
         }
-        
-        private Bounds GetBounds()
-        {
-            if (_data.prefab == null)
-            {
-                return new Bounds();
-            }
-            Bounds bounds = new Bounds();
-            var rot = _data.prefab.transform.rotation;
-            _data.prefab.transform.rotation = Quaternion.identity;
-            var colliders = _data.prefab.GetComponentsInChildren<Collider>();
-            foreach (var collider in colliders)
-            {
-                if (collider == null) continue;
-                if (!collider.enabled || !collider.gameObject.activeSelf || collider.isTrigger) continue;
-                bounds.Encapsulate(collider.bounds);
-            }
-            _data.prefab.transform.rotation = rot;
-            return bounds;
-        }
-        
-        
+
         private static string GetPlatform(BuildTarget target)
         {
             switch (target)
