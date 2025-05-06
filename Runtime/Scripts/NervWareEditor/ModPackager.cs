@@ -41,7 +41,7 @@ namespace NervWareSDK.Packaging
             if (_data.scene != null)
             {
                 EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(_data.scene), OpenSceneMode.Single);
-                EnsureModSceneData();
+                ValidateSceneLinks();
                 EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             }
 
@@ -74,7 +74,7 @@ namespace NervWareSDK.Packaging
             EditorUtility.DisplayDialog("Mod Success", "Mod packaged successfully.", "Ok");
         }
 
-        private void EnsureModSceneData()
+        private void ValidateSceneLinks()
         {
             var sceneData = Object.FindAnyObjectByType<ModdedSceneData>(FindObjectsInactive.Exclude);
             if (sceneData == null)
@@ -84,19 +84,79 @@ namespace NervWareSDK.Packaging
                 moddedScene.AddComponent<ModdedSceneData>();
             }
 
-            const string GeoFullyQualifiedName =
+            const string geoFullyQualifiedName =
                 "MetaXRAcousticGeometry, Meta.XR.Acoustics, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null";
-            var geo = Object.FindAnyObjectByType(Type.GetType(GeoFullyQualifiedName));
-            if (geo == null)
+            const string mapFullyQualifiedName =
+                "MetaXRAcousticMap, Meta.XR.Acoustics, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null";
+            const string relativePathName = "RelativeFilePath";
+            const string pathGuidName = "PathGuid";
+            var geo = Object.FindObjectsByType(Type.GetType(geoFullyQualifiedName), FindObjectsSortMode.None);
+            var map = Object.FindObjectsByType(Type.GetType(mapFullyQualifiedName), FindObjectsSortMode.None);
+            if (geo == null || geo.Length == 0)
             {
                 Debug.LogWarning("Geo not in the scene, packing without it...");
-                return;
+            }
+            else
+            {
+                int count = 0;
+                foreach (var metaGeo in geo)
+                {
+                    count += ValidateMetaFields(metaGeo);
+                    EditorUtility.SetDirty(metaGeo);
+                }
+
+                Debug.Log($"Successfully linked {count} geometries(s)!");
             }
 
-            const string RelativePathName = "RelativeFilePath";
-            _acousticPath = geo.GetType().GetProperty(RelativePathName,
-                    BindingFlags.NonPublic | BindingFlags.Instance)
-                ?.GetValue(geo) as string;
+            if (map == null || map.Length == 0)
+            {
+                Debug.LogWarning("Map not in the scene, packing without it...");
+            }
+            else
+            {
+                int count = 0;
+                foreach (var metaMap in map)
+                {
+                    count += ValidateMetaFields(metaMap);
+                    EditorUtility.SetDirty(metaMap);
+                }
+                Debug.Log($"Successfully linked {count} map(s)!");
+            }
+
+            if (map != null)
+            {
+                _acousticPath = map[0].GetType().GetProperty(relativePathName,
+                        BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.GetValue(map[0]) as string;
+            }
+            return;
+
+            int ValidateMetaFields(Object metaObject)
+            {
+                var relativePathProp = metaObject.GetType().GetProperty(relativePathName,
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                if (relativePathProp == null)
+                {
+                    Debug.LogError($"Could not find property {relativePathName}");
+                    return 0;
+                }
+                var relativePath = relativePathProp.GetValue(metaObject) as string;
+                string guid = AssetDatabase.AssetPathToGUID("Assets/" + relativePath);
+                if (string.IsNullOrEmpty(guid))
+                {
+                    Debug.LogError("Couldn't find GUID for path: " + relativePath);
+                    return 0;
+                }
+                var pathGuid = metaObject.GetType().GetField(pathGuidName,
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (pathGuid == null)
+                {
+                    Debug.LogError($"Couldn't find field {pathGuidName}!");
+                    return 0;
+                }
+                pathGuid.SetValue(metaObject, guid);
+                return 1;
+            }
         }
 
         private async Task<bool> BuildForActiveTarget()
