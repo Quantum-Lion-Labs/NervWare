@@ -16,7 +16,7 @@ namespace NervBox.Interaction
         [Tooltip("The height of the cylinder, in world space.")]
         [SerializeField] private float height;
         [SerializeField] private bool allowAnchorUpdating = false;
-        private void OnDrawGizmosSelected()
+        private void OnDrawGizmos()
         {
             if (radius < 0f || height <= 0f) return;
             SimpleTransform t = new SimpleTransform(targetTransform ? targetTransform : transform);
