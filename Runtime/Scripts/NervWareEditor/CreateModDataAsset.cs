@@ -28,16 +28,16 @@ namespace NervWareSDK.Editor
 
             BuiltModData newData = ScriptableObject.CreateInstance<BuiltModData>();
             newData.modName = name;
-            if (currentObject is GameObject gameObject)
+            if (currentObject is GameObject)
             {
-                newData.prefab = gameObject;
                 newData.modType = ModType.Spawnable;
             }
-            else if (currentObject is SceneAsset asset)
+            else if (currentObject is SceneAsset)
             {
-                newData.scene = asset;
                 newData.modType = ModType.Map;
             }
+
+            newData.modAsset = currentObject;
 
             AssetDatabase.CreateAsset(newData, $"Assets/{name}ModData.asset");
             AssetDatabase.SaveAssets();

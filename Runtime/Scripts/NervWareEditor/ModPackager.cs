@@ -19,6 +19,7 @@ using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.AddressableAssets.Initialization;
 using Object = UnityEngine.Object;
+using Task = System.Threading.Tasks.Task;
 
 namespace NervWareSDK.Packaging
 {
@@ -34,22 +35,34 @@ namespace NervWareSDK.Packaging
             _data = data;
         }
 
-        public async void PackMod()
+        public async Task<bool> PackMod(bool showDialogue)
         {
+            if (_data.modAsset == null)
+            {
+                EditorUtility.DisplayDialog("Mod Failure",
+                    "There is no scene or prefab assigned.", "Ok");
+                return false;
+            }
             var currentTarget = EditorUserBuildSettings.activeBuildTarget;
             var currentGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
-            if (_data.scene != null)
+            if (_data.modAsset is SceneAsset scene)
             {
-                EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(_data.scene), OpenSceneMode.Single);
+                _data.modType = ModType.Map;
+                EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(scene), OpenSceneMode.Single);
                 ValidateSceneLinks();
                 EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+            }
+            else
+            {
+                //todo: avatar
+                _data.modType = ModType.Spawnable;
             }
 
             var buildTask = await BuildForActiveTarget();
             if (!buildTask)
             {
                 EditorUtility.DisplayDialog("Mod Failure", "Mod packaged failed.", "Ok");
-                return;
+                return false;
             }
 
             if (currentTarget == BuildTarget.Android)
@@ -66,12 +79,17 @@ namespace NervWareSDK.Packaging
             if (!buildTask)
             {
                 EditorUtility.DisplayDialog("Mod Failure", "Mod packaged failed.", "Ok");
-                return;
+                return false;
             }
 
             EditorUserBuildSettings.SwitchActiveBuildTarget(currentGroup, currentTarget);
             EditorUtility.SetDirty(_data);
-            EditorUtility.DisplayDialog("Mod Success", "Mod packaged successfully.", "Ok");
+            if (showDialogue)
+            {
+                EditorUtility.DisplayDialog("Mod Success", "Mod packaged successfully.", "Ok");
+            }
+
+            return true;
         }
 
         private void ValidateSceneLinks()
@@ -111,8 +129,9 @@ namespace NervWareSDK.Packaging
             if (map == null || map.Length == 0)
             {
                 Debug.LogWarning("Map not in the scene, packing without it...");
+                return;
             }
-            else
+
             {
                 int count = 0;
                 foreach (var metaMap in map)
@@ -123,12 +142,9 @@ namespace NervWareSDK.Packaging
                 Debug.Log($"Successfully linked {count} map(s)!");
             }
 
-            if (map != null)
-            {
-                _acousticPath = map[0].GetType().GetProperty(relativePathName,
-                        BindingFlags.NonPublic | BindingFlags.Instance)
-                    ?.GetValue(map[0]) as string;
-            }
+            _acousticPath = map[0].GetType().GetProperty(relativePathName,
+                    BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(map[0]) as string;
             return;
 
             int ValidateMetaFields(Object metaObject)
@@ -161,37 +177,14 @@ namespace NervWareSDK.Packaging
 
         private async Task<bool> BuildForActiveTarget()
         {
-            if (_data.prefab == null && _data.scene == null)
-            {
-                EditorUtility.DisplayDialog("Validation Error", "There is no prefab or scene assigned!",
-                    "ok");
-                return false;
-            }
-
             if (string.IsNullOrEmpty(_data.modName))
             {
-                EditorUtility.DisplayDialog("Validation Error", "The mod name is empty!",
-                    "ok");
-                return false;
+                Debug.LogWarning("WARNING: No mod name assigned, using the mod asset name instead...");
+                _data.modName = _data.modAsset.name;
             }
 
             var group = AddressableAssetSettingsDefaultObject.Settings.DefaultGroup;
-            string assetPath = null;
-            switch (_data.modType)
-            {
-                case ModType.Spawnable:
-                    assetPath = AssetDatabase.GetAssetPath(_data.prefab);
-                    break;
-                case ModType.Map:
-                    assetPath = AssetDatabase.GetAssetPath(_data.scene);
-                    break;
-                case ModType.Avatar:
-                case ModType.None:
-                    EditorUtility.DisplayDialog("Validation Error", "Avatar mods are not supported yet!",
-                        "ok");
-                    return false;
-            }
-
+            string assetPath = AssetDatabase.GetAssetPath(_data.modAsset);
             var guid = AssetDatabase.AssetPathToGUID(assetPath);
 
             if (group == null || guid == null)
@@ -227,7 +220,7 @@ namespace NervWareSDK.Packaging
                 AddressableAssetSettings.ModificationEvent.EntryMoved,
                 entry, true);
 
-            if (_data.scene != null && !string.IsNullOrEmpty(_acousticPath))
+            if (_data.modAsset is SceneAsset && !string.IsNullOrEmpty(_acousticPath))
             {
                 //acoustic path is something like Scenes/... so we append Assets to it.
                 //assume all audio assets stored in the same folder

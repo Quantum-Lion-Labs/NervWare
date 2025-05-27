@@ -16,10 +16,52 @@ namespace NervWareSDK.Packaging
             _data = data;
         }
 
+        public async Task Publish()
+        {
+            if (_data.modIdCache <= 0)
+            {
+                EditorUtility.DisplayDialog("Validation Error", "The mod has not been uploaded!",
+                    "ok");
+                return;
+            }
+            ModProfileDetails details = new ModProfileDetails
+            {
+                visible = true
+            };
+            Debug.Log("Publishing mod...");
+            details.modId = (ModId?)_data.modIdCache;
+            var updateCreate = ModIOUnityAsync.EditModProfile(details);
+            int progressId = Progress.Start("Publish Mod");
+            while (!updateCreate.IsCompleted)
+            {
+                var handle = ModIOUnity.GetCurrentUploadHandle();
+                if (handle != null)
+                {
+                    _data.progress = handle.Progress;
+                    _data.progressTitle = "Updating Mod Profile";
+                    Progress.Report(progressId, handle.Progress);
+                }
+
+                await Task.Yield();
+            }
+            Progress.Remove(progressId);
+
+            if (!updateCreate.Result.Succeeded())
+            {
+                EditorUtility.DisplayDialog("Mod Upload Failed",
+                    $"Publish mod failed: {updateCreate.Result.message} {updateCreate.Result.apiMessage}",
+                    "ok");
+                _data.progress = 0f;
+                _data.progressTitle = "";
+                return;
+            }
+            Debug.Log("Published mod.");
+        }
+        
         public async Task Upload()
         {
             //TODO: better validation
-            if (_data.prefab == null && _data.scene == null)
+            if (_data.modAsset == null)
             {
                 EditorUtility.DisplayDialog("Validation Error", "There is no prefab or scene assigned!",
                     "ok");
@@ -88,7 +130,8 @@ namespace NervWareSDK.Packaging
                 name = _data.modName,
                 summary = _data.modSummary,
                 description = _data.modDescription,
-                tags = new[] { _data.modType.ToString() }
+                tags = new[] { _data.modType.ToString() },
+                visible = false
             };
 
             if (_data.modIdCache <= 0)
@@ -125,6 +168,9 @@ namespace NervWareSDK.Packaging
             }
             else
             {
+                var modProfileCurrent = await ModIOUnityAsync.GetMod((ModId)_data.modIdCache);
+                bool visible = modProfileCurrent.value.visible;
+                details.visible = visible;
                 Debug.Log("Updating Mod Profile...");
                 details.modId = (ModId?)_data.modIdCache;
                 var updateCreate = ModIOUnityAsync.EditModProfile(details);

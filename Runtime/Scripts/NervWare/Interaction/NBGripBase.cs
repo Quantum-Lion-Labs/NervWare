@@ -58,5 +58,8 @@ namespace NervBox.Interaction
         {
             return grabber.rotation;
         }
+        
+        public virtual void OnDisable()
+        {}
     }
 }

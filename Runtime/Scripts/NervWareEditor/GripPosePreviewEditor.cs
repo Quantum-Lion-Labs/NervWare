@@ -19,6 +19,7 @@ namespace NervWareSDK.Editor
         private HandManager _handManager = null;
         private SerializedProperty _poseProperty;
         private List<HandPose> _handPoses = new List<HandPose>();
+        private bool _showAdvancedSettings = false;
 
         private void OnEnable()
         {
@@ -32,6 +33,11 @@ namespace NervWareSDK.Editor
             if (_handManager != null)
             {
                 DestroyImmediate(_handManager.gameObject);
+            }
+
+            if (_grip != null)
+            {
+                _grip.OnDisable();
             }
         }
 
@@ -58,28 +64,17 @@ namespace NervWareSDK.Editor
             }
 
             serializedObject.Update();
-            GUILayout.BeginVertical("Hand Pose Settings", "window");
-            _showLeftPreview = GUILayout.Toggle(_showLeftPreview, "Show Left Preview");
-            _showRightPreview = GUILayout.Toggle(_showRightPreview, "Show Right Preview");
-            _previewActive = _showLeftPreview || _showRightPreview;
-            DrawPoseDropDown();
-            GUILayout.EndVertical();
+           
 
+         
+            
             EditorGUILayout.Separator();
-
             GUILayout.BeginVertical("Interaction Settings", "window");
             EditorGUILayout.PropertyField(serializedObject.FindProperty("canBeForceGrabbed"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("showIndicator"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("holdType"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("requireAdditionalWristMotion"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("<IgnoreCollideWithBody>k__BackingField"));
+            
             GUILayout.EndVertical();
-            EditorGUILayout.Separator();
-
-            GUILayout.BeginVertical("Hand Joint Settings", "window");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("grabRotationLimits"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("jointBreakForce"));
-            GUILayout.EndVertical();
+          
             EditorGUILayout.Separator();
 
             GUILayout.BeginVertical("Positioning Settings", "window");
@@ -119,6 +114,34 @@ namespace NervWareSDK.Editor
             }
 
             GUILayout.EndVertical();
+            EditorGUILayout.Separator();
+            
+            _showAdvancedSettings = EditorGUILayout.Foldout(_showAdvancedSettings, "Advanced Settings");
+            if (_showAdvancedSettings)
+            {
+                EditorGUILayout.Separator();
+
+                GUILayout.BeginVertical("Hand Joint Settings", "window");
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("grabRotationLimits"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("jointBreakForce"));
+                GUILayout.EndVertical();
+                
+                EditorGUILayout.Separator();
+                GUILayout.BeginVertical("Interaction Settings", "window");
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("holdType"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("requireAdditionalWristMotion"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("<IgnoreCollideWithBody>k__BackingField"));
+                GUILayout.EndVertical();
+                
+                EditorGUILayout.Separator();
+                GUILayout.BeginVertical("Hand Pose Settings", "window");
+                _showLeftPreview = GUILayout.Toggle(_showLeftPreview, "Show Left Preview");
+                _showRightPreview = GUILayout.Toggle(_showRightPreview, "Show Right Preview");
+                _previewActive = _showLeftPreview || _showRightPreview;
+                DrawPoseDropDown();
+                GUILayout.EndVertical();
+            }
+            
             GUILayout.FlexibleSpace();
 
 
@@ -152,6 +175,7 @@ namespace NervWareSDK.Editor
 
         private void DrawPoseDropDown()
         {
+            EditorGUILayout.LabelField("NOTE: Hand poses are optional!");
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PropertyField(_poseProperty);
             if (GUILayout.Button("Choose Pose"))

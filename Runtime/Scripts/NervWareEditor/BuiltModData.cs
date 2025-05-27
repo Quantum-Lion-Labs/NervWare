@@ -33,35 +33,29 @@ namespace NervWareSDK
         [TextArea] public string modSummary = "My Excellent Mod Summary";
         [TextArea] public string modDescription = "My Excellent Mod Description";
         public string modVersion = "0.0.1";
-        public ModType modType = ModType.Spawnable;
-        [HideInInspector]
-        [GUIColor(EColor.Red)] [TextArea] public string modMetaData = "metaDataTodo";
+        [HideInInspector] public ModType modType = ModType.Spawnable;
+
+        [HideInInspector] [GUIColor(EColor.Red)] [TextArea]
+        public string modMetaData = "metaDataTodo";
 
         [LayoutEnd("Mod Data")]
         [LayoutStart("Mod Assets", ELayout.TitleBox)]
         [InfoBox("Setup your mod assets here.")]
-        [ShowIf(nameof(modType), ModType.Spawnable)]
         [GUIColor(EColor.Cyan)]
         [AssetPreview(groupBy: "Previews")]
         [ValidateInput(nameof(ValidatePrefab))]
-        public GameObject prefab;
-        [AssetPreview(groupBy: "Previews")]
-        [ShowIf(nameof(modType), ModType.Map)]
-        public SceneAsset scene;
+        public Object modAsset;
 
         [AssetPreview(groupBy: "Previews")] [PostFieldButton(nameof(GenerateTempLogo))]
         public Texture2D logo;
 
-        
-        [LayoutEnd("Mod Data")] 
-        [ReadOnly] [HideInInspector]
+
+        [LayoutEnd("Mod Data")] [ReadOnly] [HideInInspector]
         public string androidBuildPath;
 
-        [ReadOnly] [HideInInspector]
-        public string windowsBuildPath;
+        [ReadOnly] [HideInInspector] public string windowsBuildPath;
 
-        [ReadOnly] [HideInInspector]
-        public long modIdCache = -1;
+        [ReadOnly] [HideInInspector] public long modIdCache = -1;
 
         [ReadOnly]
         [ShowIf(nameof(ShowProgress))]
@@ -69,8 +63,9 @@ namespace NervWareSDK
             nameof(GetProgressTitle))]
         public float progress;
 
-        [ReadOnly] [HideInInspector]
-        public string progressTitle = "";
+        [ReadOnly] [HideInInspector] public string progressTitle = "";
+
+        [HideInInspector] public Hash128 lastModHash = new Hash128();
 
         [ContextMenu("Reset Mod ID")]
         private void ResetModID()
@@ -78,18 +73,110 @@ namespace NervWareSDK
             modIdCache = -1;
         }
 
-        [Button]
-        private void BuildMod()
+        [Button("Test In NervBox - Windows")]
+        private async void TestInNervBoxWindows()
         {
-            ModPackager packager = new ModPackager(this);
-            packager.PackMod();
+            var currHash = AssetDatabase.GetAssetDependencyHash(AssetDatabase.GetAssetPath(modAsset));
+            if (currHash != lastModHash)
+            {
+                Debug.Log("Hash Mismatch, rebuilding!");
+                ModPackager packager = new ModPackager(this);
+                var result = await packager.PackMod(false);
+                if (!result)
+                {
+                    return;
+                }
+                lastModHash = currHash;
+            }
+            else
+            {
+                Debug.Log("No mod changes detected, building will be skipped!");
+            }
+            
+            string nbDir = Path.Combine(Application.persistentDataPath,
+                "../../", "Quantum Lion Labs/NervBox/Test Mods", modName);
+            nbDir = Path.GetFullPath(nbDir);
+            if (Directory.Exists(nbDir))
+            {
+                Directory.Delete(nbDir, true);
+            }
+
+            Directory.CreateDirectory(nbDir);
+            CopyDirectory(windowsBuildPath, nbDir);
+        }
+
+        private void CopyDirectory(string sourceDir, string destDir)
+        {
+            var dir = new DirectoryInfo(sourceDir);
+            if (!dir.Exists)
+            {
+                return;
+            }
+
+            var dirs = dir.GetDirectories();
+            Directory.CreateDirectory(destDir);
+            var files = dir.GetFiles();
+            foreach (var fileInfo in files)
+            {
+                string path = Path.Combine(destDir, fileInfo.Name);
+                fileInfo.CopyTo(path);
+            }
+
+            foreach (var subDir in dirs)
+            {
+                string newDir = Path.Combine(destDir, subDir.Name);
+                CopyDirectory(subDir.FullName, newDir);
+            }
         }
 
         [Button]
-        private async void UploadMod()
+        private async void BuildAndUploadMod()
         {
+            var currHash = AssetDatabase.GetAssetDependencyHash(AssetDatabase.GetAssetPath(modAsset));
+            if (currHash != lastModHash)
+            {
+                Debug.Log("Hash Mismatch, rebuilding!");
+                ModPackager packager = new ModPackager(this);
+                var result = await packager.PackMod(false);
+                if (!result)
+                {
+                    return;
+                }
+                lastModHash = currHash;
+            }
+            else
+            {
+                Debug.Log("No mod changes detected, building will be skipped!");
+            }
+
             ModUploader uploader = new ModUploader(this);
             await uploader.Upload();
+        }
+
+        [Button]
+        private async void ViewModPage()
+        {
+            if (modIdCache < 0) return;
+            var mod = await ModIOUnityAsync.GetMod(new ModId(modIdCache));
+            if (mod.result.Succeeded())
+            {
+                var id = mod.value.nameId;
+                Application.OpenURL("https://mod.io/g/nervbox/m/" + id);
+            }
+        }
+
+        [Button]
+        private async void PublishMod()
+        {
+            if (modIdCache < 0) return;
+            if (!EditorUtility.DisplayDialog("Mod Publish Warning",
+                    "Warning: By publishing this mod you are confirming that your mod is functional, performant, and confirms to the NervBox modding rules.",
+                    "Publish Mod", "Cancel"))
+            {
+                return;
+            }
+            ModUploader uploader = new ModUploader(this);
+            await uploader.Publish();
         }
 
         private string GetProgressTitle(float curValue, float min, float max, string label)
@@ -102,34 +189,6 @@ namespace NervWareSDK
             return progress > 0;
         }
 
-        [Button]
-        private void OpenModFolder()
-        {
-            Debug.Log(windowsBuildPath);
-            if (Directory.Exists(windowsBuildPath))
-            {
-                string fullPath = Path.GetFullPath(windowsBuildPath + "/../");
-                EditorUtility.RevealInFinder(fullPath);
-            }
-            else if (Directory.Exists(androidBuildPath ))
-            {
-                string fullPath = Path.GetFullPath(androidBuildPath + "/../");
-                EditorUtility.RevealInFinder(fullPath);
-            }
-        }
-
-        [Button]
-        private async void OpenModPageInBrowser()
-        {
-            if (modIdCache < 0) return;
-            var mod = await ModIOUnityAsync.GetMod(new ModId(modIdCache));
-            if (mod.result.Succeeded())
-            {
-                var id = mod.value.nameId;
-                Application.OpenURL("https://mod.io/g/nervbox/m/" + id);
-            }
-        }
-
         private string ValidateName(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -140,14 +199,19 @@ namespace NervWareSDK
             return null;
         }
 
-        private string ValidatePrefab(GameObject gameObject)
+        private string ValidatePrefab(Object obj)
         {
-            if (gameObject == null)
+            if (obj == null)
             {
-                return "Missing prefab!";
+                return "No scene asset or prefab assigned!";
             }
 
-            if (PrefabUtility.IsPartOfPrefabAsset(gameObject))
+            if (obj is GameObject && PrefabUtility.IsPartOfPrefabAsset(obj))
+            {
+                return null;
+            }
+
+            if (obj is SceneAsset)
             {
                 return null;
             }
@@ -188,7 +252,7 @@ namespace NervWareSDK
         private Texture2D GetHeaderImage()
         {
             return (Texture2D)EditorUtility.InstanceIDToObject(
-                AssetDatabase.LoadAssetAtPath("Packages/com.quantumlionlabs.nervwaresdk/Editor/nervware.png", 
+                AssetDatabase.LoadAssetAtPath("Packages/com.quantumlionlabs.nervwaresdk/Editor/nervware.png",
                     typeof(Texture2D)).GetInstanceID());
         }
 
