@@ -64,19 +64,83 @@ namespace NervWareSDK.Editor
             }
 
             serializedObject.Update();
-           
 
-         
-            
+
             EditorGUILayout.Separator();
             GUILayout.BeginVertical("Interaction Settings", "window");
             EditorGUILayout.PropertyField(serializedObject.FindProperty("canBeForceGrabbed"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("showIndicator"));
-            
+
             GUILayout.EndVertical();
-          
+
             EditorGUILayout.Separator();
 
+            if (_grip is not GenericGrip)
+            {
+                DrawPositioningSettings();
+            }
+
+            EditorGUILayout.Separator();
+
+            _showAdvancedSettings = EditorGUILayout.Foldout(_showAdvancedSettings, "Advanced Settings");
+            if (_showAdvancedSettings)
+            {
+                EditorGUILayout.Separator();
+
+                GUILayout.BeginVertical("Hand Joint Settings", "window");
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("grabRotationLimits"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("jointBreakForce"));
+                GUILayout.EndVertical();
+
+                EditorGUILayout.Separator();
+                GUILayout.BeginVertical("Interaction Settings", "window");
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("holdType"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("requireAdditionalWristMotion"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("<IgnoreCollideWithBody>k__BackingField"));
+                GUILayout.EndVertical();
+
+                EditorGUILayout.Separator();
+                GUILayout.BeginVertical("Hand Pose Settings", "window");
+                _showLeftPreview = GUILayout.Toggle(_showLeftPreview, "Show Left Preview");
+                _showRightPreview = GUILayout.Toggle(_showRightPreview, "Show Right Preview");
+                _previewActive = _showLeftPreview || _showRightPreview;
+                DrawPoseDropDown();
+                GUILayout.EndVertical();
+            }
+
+            GUILayout.FlexibleSpace();
+
+
+            if (_previewActive && _poseProperty.objectReferenceValue != null)
+            {
+                if (_handManager == null)
+                {
+                    GameObject manager = Resources.Load<GameObject>(
+                        "Hand Manager");
+                    var obj = GameObject.Instantiate(manager);
+                    _handManager = obj.GetComponent<HandManager>();
+                    _handManager.LeftHand.Toggle(_showLeftPreview);
+                    _handManager.RightHand.Toggle(_showRightPreview);
+                    _handManager.UpdateHands(_poseProperty.objectReferenceValue as HandPose, _grip, false);
+                    _handManager.gameObject.hideFlags = HideFlags.HideAndDontSave;
+                    _handManager.LeftHand.gameObject.hideFlags = HideFlags.HideAndDontSave;
+                    _handManager.RightHand.gameObject.hideFlags = HideFlags.HideAndDontSave;
+                }
+
+                _handManager.LeftHand.Toggle(_showLeftPreview);
+                _handManager.RightHand.Toggle(_showRightPreview);
+                _handManager.UpdateHands(_poseProperty.objectReferenceValue as HandPose, _grip, false);
+            }
+            else
+            {
+                OnDisable();
+            }
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawPositioningSettings()
+        {
             GUILayout.BeginVertical("Positioning Settings", "window");
             EditorGUILayout.PropertyField(serializedObject.FindProperty("flipHorizontal"));
             var up = serializedObject.FindProperty("allowFlippingUpAxis");
@@ -114,63 +178,6 @@ namespace NervWareSDK.Editor
             }
 
             GUILayout.EndVertical();
-            EditorGUILayout.Separator();
-            
-            _showAdvancedSettings = EditorGUILayout.Foldout(_showAdvancedSettings, "Advanced Settings");
-            if (_showAdvancedSettings)
-            {
-                EditorGUILayout.Separator();
-
-                GUILayout.BeginVertical("Hand Joint Settings", "window");
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("grabRotationLimits"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("jointBreakForce"));
-                GUILayout.EndVertical();
-                
-                EditorGUILayout.Separator();
-                GUILayout.BeginVertical("Interaction Settings", "window");
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("holdType"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("requireAdditionalWristMotion"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("<IgnoreCollideWithBody>k__BackingField"));
-                GUILayout.EndVertical();
-                
-                EditorGUILayout.Separator();
-                GUILayout.BeginVertical("Hand Pose Settings", "window");
-                _showLeftPreview = GUILayout.Toggle(_showLeftPreview, "Show Left Preview");
-                _showRightPreview = GUILayout.Toggle(_showRightPreview, "Show Right Preview");
-                _previewActive = _showLeftPreview || _showRightPreview;
-                DrawPoseDropDown();
-                GUILayout.EndVertical();
-            }
-            
-            GUILayout.FlexibleSpace();
-
-
-            if (_previewActive && _poseProperty.objectReferenceValue != null)
-            {
-                if (_handManager == null)
-                {
-                    GameObject manager = Resources.Load<GameObject>(
-                        "Hand Manager");
-                    var obj = GameObject.Instantiate(manager);
-                    _handManager = obj.GetComponent<HandManager>();
-                    _handManager.LeftHand.Toggle(_showLeftPreview);
-                    _handManager.RightHand.Toggle(_showRightPreview);
-                    _handManager.UpdateHands(_poseProperty.objectReferenceValue as HandPose, _grip, false);
-                    _handManager.gameObject.hideFlags = HideFlags.HideAndDontSave;
-                    _handManager.LeftHand.gameObject.hideFlags = HideFlags.HideAndDontSave;
-                    _handManager.RightHand.gameObject.hideFlags = HideFlags.HideAndDontSave;
-                }
-
-                _handManager.LeftHand.Toggle(_showLeftPreview);
-                _handManager.RightHand.Toggle(_showRightPreview);
-                _handManager.UpdateHands(_poseProperty.objectReferenceValue as HandPose, _grip, false);
-            }
-            else
-            {
-                OnDisable();
-            }
-
-            serializedObject.ApplyModifiedProperties();
         }
 
         private void DrawPoseDropDown()

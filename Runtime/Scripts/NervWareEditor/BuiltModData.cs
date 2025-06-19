@@ -1,11 +1,11 @@
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using ModIO;
 using NervWareSDK.Packaging;
-using SaintsField;
-using SaintsField.Playa;
 using UnityEditor;
+using UnityEditor.AddressableAssets.Build;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Serialization;
@@ -23,76 +23,63 @@ namespace NervWareSDK
     [CreateAssetMenu(menuName = "ScriptableObjects/Create Mod Data", fileName = "Assets/New Mod Data")]
     public class BuiltModData : ScriptableObject
     {
-        [AboveImage(nameof(GetHeaderImage), align: EAlign.Center, order = -10)]
-        [LayoutStart("Mod Data", ELayout.TitleBox)]
-        [InfoBox("Information about your mod goes here.")]
-        [GUIColor(EColor.Pink)]
-        [ValidateInput(nameof(ValidateName))]
         public string modName = "My Mod";
 
-        [TextArea] public string modSummary = "My Excellent Mod Summary";
-        [TextArea] public string modDescription = "My Excellent Mod Description";
+        public string modSummary = "My Excellent Mod Summary";
+        public string modDescription = "My Excellent Mod Description";
         public string modVersion = "0.0.1";
         [HideInInspector] public ModType modType = ModType.Spawnable;
 
-        [HideInInspector] [GUIColor(EColor.Red)] [TextArea]
-        public string modMetaData = "metaDataTodo";
+        [HideInInspector] public string modMetaData = "metaDataTodo";
 
-        [LayoutEnd("Mod Data")]
-        [LayoutStart("Mod Assets", ELayout.TitleBox)]
-        [InfoBox("Setup your mod assets here.")]
-        [GUIColor(EColor.Cyan)]
-        [AssetPreview(groupBy: "Previews")]
-        [ValidateInput(nameof(ValidatePrefab))]
         public Object modAsset;
 
-        [AssetPreview(groupBy: "Previews")] [PostFieldButton(nameof(GenerateTempLogo))]
         public Texture2D logo;
 
 
-        [LayoutEnd("Mod Data")] [ReadOnly] [HideInInspector]
-        public string androidBuildPath;
+        [HideInInspector] public string androidBuildPath;
 
-        [ReadOnly] [HideInInspector] public string windowsBuildPath;
+        [HideInInspector] public string windowsBuildPath;
 
-        [ReadOnly] [HideInInspector] public long modIdCache = -1;
+        [HideInInspector] public long modIdCache = -1;
 
-        [ReadOnly]
-        [ShowIf(nameof(ShowProgress))]
-        [ProgressBar(min: 0f, max: 1f, step: 0.01f, EColor.Blue, EColor.CharcoalGray, null, null,
-            nameof(GetProgressTitle))]
+
         public float progress;
 
-        [ReadOnly] [HideInInspector] public string progressTitle = "";
+        [HideInInspector] public string progressTitle = "";
 
-        [HideInInspector] public Hash128 lastModHash = new Hash128();
+        [HideInInspector] public List<Hash128> lastModHash = new();
 
+        [HideInInspector] public bool isPublic = false;
+        [HideInInspector] public bool isUploaded;
+
+        [HideInInspector] public Vector3 halfExtents;
         [ContextMenu("Reset Mod ID")]
         private void ResetModID()
         {
             modIdCache = -1;
         }
-
-        [Button("Test In NervBox - Windows")]
-        private async void TestInNervBoxWindows()
+        
+        internal async void TestInNervBoxWindows()
         {
-            var currHash = AssetDatabase.GetAssetDependencyHash(AssetDatabase.GetAssetPath(modAsset));
-            if (currHash != lastModHash)
+            AssetDatabase.SaveAssets();
+            var needsUpdate = NeedsUpdate();
+
+            if (needsUpdate)
             {
                 Debug.Log("Hash Mismatch, rebuilding!");
                 ModPackager packager = new ModPackager(this);
-                var result = await packager.PackMod(false);
+                var result = await packager.PackMod(true);
                 if (!result)
                 {
                     return;
                 }
-                lastModHash = currHash;
             }
             else
             {
                 Debug.Log("No mod changes detected, building will be skipped!");
             }
-            
+
             string nbDir = Path.Combine(Application.persistentDataPath,
                 "../../", "Quantum Lion Labs/NervBox/Test Mods", modName);
             nbDir = Path.GetFullPath(nbDir);
@@ -103,6 +90,39 @@ namespace NervWareSDK
 
             Directory.CreateDirectory(nbDir);
             CopyDirectory(windowsBuildPath, nbDir);
+        }
+
+        private bool NeedsUpdate()
+        {
+            var dependencies = AssetDatabase.GetDependencies(AssetDatabase.GetAssetPath(modAsset));
+            bool needsUpdate = false;
+            if (lastModHash.Count != dependencies.Length)
+            {
+                needsUpdate = true;
+                lastModHash.Clear();
+                foreach (var dependency in dependencies)
+                {
+                    lastModHash.Add(AssetDatabase.GetAssetDependencyHash(dependency));
+                }
+
+                Debug.Log("count mismatch");
+            }
+            else
+            {
+                for (var i = 0; i < dependencies.Length; i++)
+                {
+                    var hash = AssetDatabase.GetAssetDependencyHash(dependencies[i]);
+                    if (hash != lastModHash[i])
+                    {
+                        Debug.Log($"hash mismatch {hash} - {lastModHash[i]}");
+                        needsUpdate = true;
+                    }
+
+                    lastModHash[i] = hash;
+                }
+            }
+
+            return needsUpdate;
         }
 
         private void CopyDirectory(string sourceDir, string destDir)
@@ -129,11 +149,10 @@ namespace NervWareSDK
             }
         }
 
-        [Button]
-        private async void BuildAndUploadMod()
+        internal async void BuildAndUploadMod()
         {
-            var currHash = AssetDatabase.GetAssetDependencyHash(AssetDatabase.GetAssetPath(modAsset));
-            if (currHash != lastModHash)
+            AssetDatabase.SaveAssets();
+            if (NeedsUpdate())
             {
                 Debug.Log("Hash Mismatch, rebuilding!");
                 ModPackager packager = new ModPackager(this);
@@ -142,19 +161,25 @@ namespace NervWareSDK
                 {
                     return;
                 }
-                lastModHash = currHash;
             }
             else
             {
                 Debug.Log("No mod changes detected, building will be skipped!");
             }
 
-            ModUploader uploader = new ModUploader(this);
-            await uploader.Upload();
+            try
+            {
+                EditorApplication.LockReloadAssemblies();
+                ModUploader uploader = new ModUploader(this);
+                await uploader.Upload();
+            }
+            finally
+            {
+                EditorApplication.UnlockReloadAssemblies();
+            }
         }
 
-        [Button]
-        private async void ViewModPage()
+        internal async void ViewModPage()
         {
             if (modIdCache < 0) return;
             var mod = await ModIOUnityAsync.GetMod(new ModId(modIdCache));
@@ -165,8 +190,7 @@ namespace NervWareSDK
             }
         }
 
-        [Button]
-        private async void PublishMod()
+        internal async void PublishMod()
         {
             if (modIdCache < 0) return;
             if (!EditorUtility.DisplayDialog("Mod Publish Warning",
@@ -175,21 +199,23 @@ namespace NervWareSDK
             {
                 return;
             }
+
             ModUploader uploader = new ModUploader(this);
             await uploader.Publish();
+            isPublic = true;
         }
 
-        private string GetProgressTitle(float curValue, float min, float max, string label)
+        internal string GetProgressTitle(float curValue, float min, float max, string label)
         {
             return progressTitle;
         }
 
-        private bool ShowProgress()
+        internal bool ShowProgress()
         {
             return progress > 0;
         }
 
-        private string ValidateName(string name)
+        internal string ValidateName(string name)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -199,7 +225,7 @@ namespace NervWareSDK
             return null;
         }
 
-        private string ValidatePrefab(Object obj)
+        internal string ValidatePrefab(Object obj)
         {
             if (obj == null)
             {
@@ -219,7 +245,7 @@ namespace NervWareSDK
             return "Prefab is part of a scene or invalid!";
         }
 
-        private async void GenerateTempLogo()
+        internal async void GenerateTempLogo()
         {
             var handle = await GenerateLogo(modName, Color.grey, Color.black);
             var folder = "Assets/Generated Logos";
@@ -261,7 +287,7 @@ namespace NervWareSDK
             string backgroundColorString = ColorUtility.ToHtmlStringRGB(backgroundColor);
             string textColorString = ColorUtility.ToHtmlStringRGB(textColor);
 
-            Debug.Log($"Colors are: {backgroundColorString} and {textColorString}");
+            Debug.Log($"Colors are: {backgroundColorString} and {textColorString} {text}");
 
             UnityWebRequest request =
                 UnityWebRequestTexture.GetTexture(
@@ -279,6 +305,12 @@ namespace NervWareSDK
             }
 
             return DownloadHandlerTexture.GetContent(request);
+        }
+
+        internal async void UpdateModPage()
+        {
+            ModUploader uploader = new ModUploader(this);
+            await uploader.CreateOrUpdateModPage();
         }
     }
 }
