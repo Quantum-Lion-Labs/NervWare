@@ -1,0 +1,40 @@
+#root-container
+{
+    padding: 3px;
+    min-width: 150px;
+}
+
+.button-row
+{
+    flex-direction: row;
+    align-items: center;
+    padding: 2px;
+    margin-bottom: 2px;
+    border-radius: 3px;
+}
+
+.button-row:hover
+{
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.button-row-selected
+{
+    background-color: #4c80f1;
+    color: white;
+}
+
+.color-swatch
+{
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
+}
+
+.button-label
+{
+    font-size: 12px;
+}

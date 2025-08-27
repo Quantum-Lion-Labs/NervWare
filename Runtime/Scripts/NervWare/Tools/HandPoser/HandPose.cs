@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using SaintsField;
-using SaintsField.Playa;
 using UnityEngine;
 
 namespace NervBox.Tools.HandPoser

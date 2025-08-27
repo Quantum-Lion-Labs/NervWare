@@ -166,8 +166,8 @@ internal class MetaXRAcousticMap : MonoBehaviour
     [FormerlySerializedAs("relativeFilePath_")]
     [SerializeField]
     private string relativeFilePath = "";
-
-    public string PathGuid;
+    [SerializeField] private string relativeFilePathBackup;
+    [SerializeField] public string PathGuid;
 
     //-------
     // PRIVATE
@@ -230,6 +230,10 @@ internal class MetaXRAcousticMap : MonoBehaviour
         }
 
         FixPathCaseMismatch();
+#if UNITY_EDITOR
+        string guid = UnityEditor.AssetDatabase.AssetPathToGUID("Assets/" + RelativeFilePath);
+        PathGuid = guid;
+#endif
     }
 
     /// Whether or not the IR is currently being computed.

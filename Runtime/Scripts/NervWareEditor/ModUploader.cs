@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using ModIO;
 using Newtonsoft.Json;
@@ -27,16 +28,21 @@ namespace NervWareSDK.Packaging
                 return;
             }
             var logo = MakeTempLogo(_data.logo);
+            
+            string[] tags = new[] { _data.modType.ToString() }
+                .Concat(_data.categoryTags ?? Enumerable.Empty<string>())
+                .ToArray();
+            
             ModProfileDetails details = new ModProfileDetails
             {
                 logo = logo,
                 name = _data.modName,
                 summary = _data.modSummary,
                 description = _data.modDescription,
-                tags = new[] { _data.modType.ToString() },
+                tags = tags, 
                 visible = false
             };
-
+            
             if (_data.modIdCache <= 0)
             {
                 Debug.Log("Creating new mod...");
@@ -70,6 +76,8 @@ namespace NervWareSDK.Packaging
 
                 _data.modIdCache = resultCreate.Result.value;
                 Debug.Log("Created Mod Profile");
+                EditorUtility.DisplayDialog("Mod Profile Creation Succeeded",
+                    $"Successfully created a mod page for {_data.modName}", "ok");
             }
             else
             {
@@ -107,6 +115,8 @@ namespace NervWareSDK.Packaging
                 }
 
                 Debug.Log("Updated mod profile");
+                EditorUtility.DisplayDialog("Mod Profile Update",
+                    $"Successfully updated a mod page for {_data.modName}", "ok");
             }
         }
 
@@ -153,6 +163,8 @@ namespace NervWareSDK.Packaging
             }
 
             Debug.Log("Published mod.");
+            EditorUtility.DisplayDialog("Mod Publish Succeeded",
+                $"Successfully published {_data.modName}!", "ok");
         }
 
         public async Task Upload()
@@ -237,13 +249,14 @@ namespace NervWareSDK.Packaging
                     _data.progress = handle.Progress;
                     _data.progressTitle = "Uploading Windows Build";
                     Progress.Report(windowsProgress, handle.Progress);
+                    EditorUtility.DisplayProgressBar("Uploading Windows Modfile", "Now uploading Windows build. Don't panic if it appears stuck!", handle.Progress);
                 }
 
                 await Task.Yield();
             }
 
             Progress.Remove(windowsProgress);
-
+            EditorUtility.ClearProgressBar();
 
             if (!uploadTask.Result.Succeeded())
             {
@@ -282,11 +295,13 @@ namespace NervWareSDK.Packaging
                     _data.progress = handle.Progress;
                     _data.progressTitle = "Uploading Android Build";
                     Progress.Report(androidProgress, handle.Progress);
+                    EditorUtility.DisplayProgressBar("Uploading Android Modfile", "Now uploading Android build. Don't panic if it appears stuck!", handle.Progress);
                 }
 
                 await Task.Yield();
             }
 
+            EditorUtility.ClearProgressBar();
             Progress.Remove(androidProgress);
 
             if (!uploadTask.Result.Succeeded())
@@ -313,7 +328,7 @@ namespace NervWareSDK.Packaging
         {
             RenderTexture renderTexture =
                 RenderTexture.GetTemporary(texture.width, texture.height, 0, RenderTextureFormat.Default,
-                    RenderTextureReadWrite.Linear);
+                    RenderTextureReadWrite.sRGB);
             Graphics.Blit(texture, renderTexture);
             RenderTexture previous = RenderTexture.active;
             RenderTexture.active = renderTexture;

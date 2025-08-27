@@ -36,6 +36,8 @@ namespace NervWareSDK
 
         public Texture2D logo;
 
+        public List<string> categoryTags = new List<string>();
+        
 
         [HideInInspector] public string androidBuildPath;
 
@@ -59,6 +61,12 @@ namespace NervWareSDK
         {
             modIdCache = -1;
         }
+
+        [ContextMenu("Clear Mod Cache")]
+        private void ClearModCache()
+        {
+            lastModHash.Clear();
+        }
         
         internal async void TestInNervBoxWindows()
         {
@@ -72,6 +80,7 @@ namespace NervWareSDK
                 var result = await packager.PackMod(true);
                 if (!result)
                 {
+                    lastModHash.Clear();
                     return;
                 }
             }
@@ -80,8 +89,9 @@ namespace NervWareSDK
                 Debug.Log("No mod changes detected, building will be skipped!");
             }
 
+            //persistent data path + QLL dir + NB + Test Mods + spawnables + mod name
             string nbDir = Path.Combine(Application.persistentDataPath,
-                "../../", "Quantum Lion Labs/NervBox/Test Mods", modName);
+                "../../", "Quantum Lion Labs/NervBox/Test Mods", modType + "s", modName);
             nbDir = Path.GetFullPath(nbDir);
             if (Directory.Exists(nbDir))
             {
@@ -90,6 +100,7 @@ namespace NervWareSDK
 
             Directory.CreateDirectory(nbDir);
             CopyDirectory(windowsBuildPath, nbDir);
+            EditorUtility.DisplayDialog("Mod Testing", "Mod copied to NervBox directory succesfully!", "ok");
         }
 
         private bool NeedsUpdate()
@@ -159,6 +170,7 @@ namespace NervWareSDK
                 var result = await packager.PackMod(false);
                 if (!result)
                 {
+                    lastModHash.Clear();
                     return;
                 }
             }

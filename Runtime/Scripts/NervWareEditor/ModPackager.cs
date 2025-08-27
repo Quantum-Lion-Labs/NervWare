@@ -5,21 +5,19 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using ModIO;
-using NervWareSDK.Editor;
+using NervBox.Interaction;
 using NervBox.SDK;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.Build.Pipeline.Utilities;
-using UnityEditor.Compilation;
 using UnityEditor.SceneManagement;
-using UnityEditor.VersionControl;
-using UnityEditorInternal;
 using UnityEngine;
-using UnityEngine.AddressableAssets.Initialization;
+using Formatting = Newtonsoft.Json.Formatting;
+using JsonTextWriter = Newtonsoft.Json.JsonTextWriter;
+using JsonWriter = Newtonsoft.Json.JsonWriter;
 using Object = UnityEngine.Object;
-using Task = System.Threading.Tasks.Task;
 
 namespace NervWareSDK.Packaging
 {
@@ -98,6 +96,7 @@ namespace NervWareSDK.Packaging
 
             EditorUserBuildSettings.SwitchActiveBuildTarget(currentGroup, currentTarget);
             EditorUtility.SetDirty(_data);
+            
             if (showDialogue)
             {
                 EditorUtility.DisplayDialog("Mod Success", "Mod packaged successfully.", "Ok");
@@ -105,6 +104,8 @@ namespace NervWareSDK.Packaging
 
             return true;
         }
+
+     
 
         private void ValidateSceneLinks()
         {
@@ -116,11 +117,32 @@ namespace NervWareSDK.Packaging
                 moddedScene.AddComponent<ModdedSceneData>();
             }
 
+            //destroy audio sources since we have no control of them.
+            var audioSources = Object.FindObjectsByType<AudioSource>(FindObjectsInactive.Include, 
+                FindObjectsSortMode.None);
+            foreach (var audioSource in audioSources)
+            {
+                Object.DestroyImmediate(audioSource);
+            }
+
+            var rbs = Object.FindObjectsByType<Rigidbody>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var rigidbody in rbs)
+            {
+                var netInteractable = rigidbody.GetComponent<NetworkedInteractable>();
+                if (!netInteractable)
+                {
+                    Undo.AddComponent<NetworkedInteractable>(rigidbody.gameObject);
+                    EditorUtility.SetDirty(rigidbody);
+                }
+            }
+            
             const string geoFullyQualifiedName =
                 "MetaXRAcousticGeometry, Meta.XR.Acoustics, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null";
             const string mapFullyQualifiedName =
                 "MetaXRAcousticMap, Meta.XR.Acoustics, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null";
             const string relativePathName = "RelativeFilePath";
+            const string relativePathBackupName = "relativeFilePathBackup";
+            const string relativePathFieldName = "relativeFilePath";
             const string pathGuidName = "PathGuid";
             var geo = Object.FindObjectsByType(Type.GetType(geoFullyQualifiedName), FindObjectsSortMode.None);
             var map = Object.FindObjectsByType(Type.GetType(mapFullyQualifiedName), FindObjectsSortMode.None);
@@ -185,9 +207,19 @@ namespace NervWareSDK.Packaging
                     return 0;
                 }
                 pathGuid.SetValue(metaObject, guid);
+                Debug.Log($"Set Path GUID {pathGuid.GetValue(metaObject) as string}");
+                metaObject.GetType()
+                    .GetField(relativePathBackupName,
+                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(metaObject, relativePath);
+                // metaObject.GetType()
+                //     .GetField(relativePathFieldName,
+                //         BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic)
+                //     .SetValue(metaObject, guid);
                 return 1;
             }
         }
+        
 
         private async Task<bool> BuildForActiveTarget()
         {
@@ -227,7 +259,6 @@ namespace NervWareSDK.Packaging
 
             var entry = AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(guid, group, false, false);
             entry.address = guid;
-            Debug.Log(guid);
             entry.SetLabel(_data.modType.ToString(), true, true, false);
 
             AddressableAssetSettingsDefaultObject.Settings.SetDirty(
@@ -292,6 +323,26 @@ namespace NervWareSDK.Packaging
             else
             {
                 _data.windowsBuildPath = buildPath;
+            }
+
+            const string infoName = "mod_data.info";
+            string infoPath = Path.Combine(buildPath, infoName);
+           
+            using (StreamWriter file = File.CreateText(infoPath))
+            using (JsonWriter writer = new JsonTextWriter(file))
+            {
+                writer.Formatting = Formatting.Indented;
+                await writer.WriteStartObjectAsync();
+                await writer.WritePropertyNameAsync("Mod ID");
+                await writer.WriteValueAsync(_data.modIdCache);
+                await writer.WritePropertyNameAsync("Version");
+                await writer.WriteValueAsync(_data.modVersion);
+                await writer.WritePropertyNameAsync("SDK Version");
+                const string SDKVersion = "0.0.1"; //TODO: dynamic versioning with SDK version
+                await writer.WriteValueAsync(SDKVersion);
+                await writer.WritePropertyNameAsync("Mod Type");
+                await writer.WriteValueAsync(_data.modType.ToString());
+                await writer.WriteEndObjectAsync();
             }
 
             return true;

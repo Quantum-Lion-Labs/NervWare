@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using NervBox.Editor;
 using NervBox.Interaction;
 using UnityEditor;
 using UnityEngine;
@@ -10,13 +11,33 @@ using Object = UnityEngine.Object;
 namespace NervWareSDK.Editor
 {
     [CustomEditor(typeof(NBImpact))]
-    public class NBImpactEditor : UnityEditor.Editor
+    [CanEditMultipleObjects]
+    public class NBImpactEditor : NervWareStyledEditor
     {
         private NBImpact _impact;
-
-        public override void OnInspectorGUI()
+        private SerializedProperty _overrideSurfaceType;
+        private SerializedProperty _surfaceTypeOverride;
+        private SerializedProperty _useCustomProperties;
+        private SerializedProperty _properties;
+        private SerializedProperty _overrideSurfaceHardness;
+        private SerializedProperty _impactClips;
+        protected override void InitializeProperties()
         {
-            serializedObject.Update();
+            _overrideSurfaceType = serializedObject.FindProperty("overrideSurfaceType");
+            _surfaceTypeOverride = serializedObject.FindProperty("surfaceTypeOverride");
+            _useCustomProperties = serializedObject.FindProperty("useCustomProperties");
+            _properties = serializedObject.FindProperty("properties");
+            _overrideSurfaceHardness = serializedObject.FindProperty("overrideSurfaceHardness");
+            _impactClips = serializedObject.FindProperty("impactClips");
+        }
+
+        protected override string GetInspectorName()
+        {
+            return "IMPACT PROPERTIES";
+        }
+
+        protected override void DrawInspector()
+        {
             _impact = target as NBImpact;
             if (_impact == null)
             {
@@ -31,110 +52,92 @@ namespace NervWareSDK.Editor
             {
                 DrawDynamicEditor();
             }
-
-            serializedObject.ApplyModifiedProperties();
         }
 
         private static Object ImpactMaterialToMetaXRMaterial(SurfaceType surface)
         {
-            const string metaPath = "Packages/com.quantumlionlabs.nervwaresdk/Runtime/ScriptableObjects/MetaXR Materials";
+            const string metaPath =
+                "Packages/com.quantumlionlabs.nervwaresdk/Runtime/ScriptableObjects/MetaXR Materials";
             if (surface == SurfaceType.NoSurface)
             {
                 return null;
             }
-            var result = AssetDatabase.LoadAssetAtPath<Object>(metaPath + Path.DirectorySeparatorChar + surface + ".asset");
+
+            var result =
+                AssetDatabase.LoadAssetAtPath<Object>(metaPath + Path.DirectorySeparatorChar + surface + ".asset");
             return result;
         }
-        
+
         private void DrawStaticEditor()
         {
-            EditorGUILayout.BeginVertical("window");
-            EditorGUILayout.HelpBox("You can use NervBox's materials or define a custom one.",
-                MessageType.Info);
-            GUIStyle header = new GUIStyle();
-            header.fontStyle = FontStyle.Bold;
-            header.normal.textColor = Color.cyan;
-            GUILayout.Label("Static Settings", header);
-            DrawStaticProperties();
-            const string geoFullyQualifiedName =
-                "MetaXRAcousticGeometry, Meta.XR.Acoustics, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null";
-            var geo = _impact.gameObject.GetComponent(Type.GetType(geoFullyQualifiedName));
-            var material = _impact.gameObject.GetComponent<MetaXRAcousticMaterial>();
-            if ((geo == null || material == null) && GUILayout.Button("Setup Meta XR Material"))
+            DrawSection("STATIC SETUP", () =>
             {
-                if (material == null)
+                DrawStaticProperties();
+                const string geoFullyQualifiedName =
+                    "MetaXRAcousticGeometry, Meta.XR.Acoustics, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null";
+                var geo = _impact.gameObject.GetComponent(Type.GetType(geoFullyQualifiedName));
+                var material = _impact.gameObject.GetComponent<MetaXRAcousticMaterial>();
+                if ((geo == null || material == null) && GUILayout.Button("Setup Meta XR Material"))
                 {
-                    Debug.Log("no material");
-                    material = _impact.gameObject.AddComponent<MetaXRAcousticMaterial>();
-                    var field = material.GetType().GetField("properties", BindingFlags.Instance | BindingFlags.NonPublic);
-                    if (field != null)
+                    if (material == null)
                     {
-                        Debug.Log("h");
-                        field.SetValue(material, ImpactMaterialToMetaXRMaterial(_impact.SurfaceTypeOverride));
+                        Debug.Log("no material");
+                        material = _impact.gameObject.AddComponent<MetaXRAcousticMaterial>();
+                        var field = material.GetType()
+                            .GetField("properties", BindingFlags.Instance | BindingFlags.NonPublic);
+                        if (field != null)
+                        {
+                            Debug.Log("h");
+                            field.SetValue(material, ImpactMaterialToMetaXRMaterial(_impact.SurfaceTypeOverride));
+                        }
+                    }
+
+                    if (geo == null)
+                    {
+                        geo = _impact.gameObject.AddComponent(Type.GetType(geoFullyQualifiedName));
                     }
                 }
-
-                if (geo == null)
-                {
-                    geo = _impact.gameObject.AddComponent(Type.GetType(geoFullyQualifiedName));
-                }
-            }
-            
-            EditorGUILayout.EndVertical();
+            });
         }
 
         private bool _foldoutOpen = true;
 
         private void DrawDynamicEditor()
         {
-            EditorGUILayout.BeginVertical("window");
-            EditorGUILayout.HelpBox("You can use NervBox's materials or define a custom one.",
-                MessageType.Info);
-            GUIStyle header = new GUIStyle();
-            header.fontStyle = FontStyle.Bold;
-            header.normal.textColor = Color.magenta;
-            GUILayout.Label("Dynamic Settings", header);
-            DrawStaticProperties();
-            if (_impact.gameObject.GetComponentsInChildren<NBImpact>().Length > 1)
+            DrawSection("DYNAMIC SETUP", () =>
             {
-                //multi material object
-                serializedObject.FindProperty("isMultiMaterialObject").boolValue = true;
-            }
+                DrawStaticProperties();
+                if (_impact.gameObject.GetComponentsInChildren<NBImpact>().Length > 1)
+                {
+                    //multi material object
+                    serializedObject.FindProperty("isMultiMaterialObject").boolValue = true;
+                }
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(_impactClips);
+                EditorGUI.indentLevel--;
+            });
 
-            EditorGUI.indentLevel++;
-            var hardProp = serializedObject.FindProperty("hardImpactClips");
-            EditorGUILayout.PropertyField(hardProp);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("softImpactClips"), true);
-            EditorGUI.indentLevel--;
-            EditorGUILayout.EndVertical();
         }
 
         private void DrawStaticProperties()
         {
-            var overrideSurfaceType = serializedObject.FindProperty("overrideSurfaceType");
-            var surfaceType = serializedObject.FindProperty("surfaceTypeOverride");
-            var useCustomProperties = serializedObject.FindProperty("useCustomProperties");
-            var properties = serializedObject.FindProperty("properties");
-            var overrideSurfaceHardness = serializedObject.FindProperty("overrideSurfaceHardness");
-            if (!useCustomProperties.boolValue)
+            if (!_useCustomProperties.boolValue)
             {
                 var material =
-                    (SurfaceType)EditorGUILayout.EnumPopup("Material Type", (SurfaceType)surfaceType.boxedValue);
-                surfaceType.boxedValue = material;
-                overrideSurfaceType.boolValue = true;
-                overrideSurfaceHardness.boolValue = false;
+                    (SurfaceType)EditorGUILayout.EnumPopup("Material Type", (SurfaceType)_surfaceTypeOverride.boxedValue);
+                _surfaceTypeOverride.boxedValue = material;
+                _overrideSurfaceType.boolValue = true;
+                _overrideSurfaceHardness.boolValue = false;
             }
             else
             {
-                overrideSurfaceType.boolValue = false;
-                overrideSurfaceHardness.boolValue = false;
-                EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(properties);
-                EditorGUI.indentLevel--;
+                _overrideSurfaceType.boolValue = false;
+                _overrideSurfaceHardness.boolValue = false;
+                EditorGUILayout.PropertyField(_properties);
             }
 
-            useCustomProperties.boolValue =
-                EditorGUILayout.Toggle("Use Custom Material", useCustomProperties.boolValue);
+            _useCustomProperties.boolValue =
+                EditorGUILayout.Toggle("Use Custom Material", _useCustomProperties.boolValue);
         }
     }
 }

@@ -28,18 +28,26 @@ namespace NervBox.GameMode
         [SerializeField] public List<TeamSpawn> keyObjectSpawns = new();
         public List<Transform> enemySpawnPoints = new();
 
+        #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
             if (spawnPoints != null)
             {
                 Gizmos.color = new Color(0f, 1f, 0f, 0.5f);
+                var gameObject = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Packages/com.quantumlionlabs.nervwaresdk/Editor/Resources/NervManLowPoly.prefab");
+                var meshes = gameObject.GetComponentsInChildren<MeshFilter>();
                 for (int i = 0; i < spawnPoints.Count; i++)
                 {
                     var curr = spawnPoints[i];
                     for (int j = 0; j < curr.spawns.Count; j++)
                     {
                         if (curr.spawns[j] == null) continue;
-                        Gizmos.DrawSphere(curr.spawns[j].position, 0.2f);
+                        Gizmos.matrix = curr.spawns[j].localToWorldMatrix * Matrix4x4.Rotate(Quaternion.Euler(90.0f, 0.0f, 0.0f));
+                        foreach (var meshFilter in meshes)
+                        {
+                            Gizmos.DrawMesh(meshFilter.sharedMesh);
+                        }
                     }
                 }
             }
@@ -62,5 +70,6 @@ namespace NervBox.GameMode
                 Gizmos.DrawSphere(enemy.position, 0.2f);
             }
         }
+        #endif
     }
 }

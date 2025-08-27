@@ -17,6 +17,8 @@ namespace NervWareSDK.Editor
         private SerializedProperty _logo;
         private SerializedProperty _progress;
         private SerializedProperty _progressTitle;
+        private SerializedProperty _categoryTags;
+        
         private Texture2D _headerImage;
 
         private void OnEnable()
@@ -30,6 +32,7 @@ namespace NervWareSDK.Editor
             _logo = serializedObject.FindProperty("logo");
             _progress = serializedObject.FindProperty("progress");
             _progressTitle = serializedObject.FindProperty("progressTitle");
+            _categoryTags = serializedObject.FindProperty("categoryTags");
 
             _headerImage =
                 AssetDatabase.LoadAssetAtPath<Texture2D>(
@@ -57,7 +60,7 @@ namespace NervWareSDK.Editor
             GUI.backgroundColor = Color.magenta;
             EditorGUILayout.HelpBox("Information about your mod goes here.", MessageType.Info);
             GUI.backgroundColor = baseColor;
-            
+
             //mod name w/validation
             EditorGUILayout.PropertyField(_modName);
             string nameError = _target.ValidateName(_modName.stringValue);
@@ -69,20 +72,53 @@ namespace NervWareSDK.Editor
             bool modCreated = _target.modIdCache != -1;
             string visibility = modCreated ? (_target.isPublic ? "Public" : "Private") : "No Mod Page";
             Color visibilityColor = modCreated ? (_target.isPublic ? Color.green : Color.yellow) : Color.red;
-            
+
             GUIStyle visibilityTextStyle = new GUIStyle(EditorStyles.label);
             visibilityTextStyle.normal.textColor = visibilityColor;
-           
+
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.TextField("Mod Page Visibility", visibility, visibilityTextStyle);
-            if (modCreated) {
+            if (modCreated)
+            {
                 EditorGUILayout.TextField("Mod ID", _target.modIdCache.ToString());
             }
+
             EditorGUI.EndDisabledGroup();
-           
+
 
             //summary
             EditorGUILayout.Separator();
+            EditorGUILayout.PropertyField(_logo, new GUIContent("Logo"), true);
+            Texture2D logoValue = (Texture2D)_logo.objectReferenceValue;
+            
+            if (logoValue != null)
+            {
+                GUILayout.Label(logoValue, GUILayout.Width(128), GUILayout.Height(72));
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("No Logo is assigned!", MessageType.Error);
+            }
+            
+            
+            if (_target.modAsset != null)
+            {
+                GUILayoutOption[] thumbnailOptions =
+                {
+                    GUILayout.Height(40),
+                    GUILayout.ExpandWidth(true)
+                };
+
+                GUI.backgroundColor = new Color(0.36f, 0.25f, 0.42f, 1f);
+                if (GUILayout.Button("Open Thumbnail Creator", thumbnailOptions))
+                {
+                    ThumbnailGenerator.ShowWindow(_target);
+                }
+
+                GUI.backgroundColor = Color.white;
+            }
+
+            
             EditorGUILayout.LabelField("Mod Summary");
             _modSummary.stringValue = EditorGUILayout.TextArea(_modSummary.stringValue,
                 GUILayout.MinHeight(40));
@@ -93,6 +129,14 @@ namespace NervWareSDK.Editor
             _modDescription.stringValue =
                 EditorGUILayout.TextArea(_modDescription.stringValue, GUILayout.MinHeight(60));
 
+            //category tags
+            if (_target.modAsset is GameObject)
+            {
+                EditorGUILayout.Separator();
+                EditorGUILayout.LabelField("Category Tags");
+                CategoryTagsUI.DrawCategoryTagsField(_categoryTags);
+            }
+            
             //versioning
             EditorGUILayout.Separator();
             EditorGUILayout.PropertyField(_modVersion);
@@ -127,24 +171,9 @@ namespace NervWareSDK.Editor
                 EditorGUILayout.HelpBox(prefabError, MessageType.Error);
             }
 
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PropertyField(_logo, new GUIContent("Logo"), true);
-            Texture2D logoValue = (Texture2D)_logo.objectReferenceValue;
+            
 
-            if (GUILayout.Button("Generate", GUILayout.Width(80)))
-            {
-                _target.GenerateTempLogo();
-            }
-
-            EditorGUILayout.EndHorizontal();
-            if (logoValue != null)
-            {
-                GUILayout.Label(logoValue, GUILayout.Width(128), GUILayout.Height(128));
-            }
-            else
-            {
-                EditorGUILayout.HelpBox("No Logo is assigned!", MessageType.Error);
-            }
+           
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
@@ -170,15 +199,16 @@ namespace NervWareSDK.Editor
             if (GUILayout.Button(new GUIContent("Test in NervBox - Android", "Coming soon!")))
             {
             }
+
             EditorGUI.EndDisabledGroup();
 
             EditorGUILayout.EndHorizontal();
 
             //build and publish buttons
             EditorGUILayout.LabelField("Publishing", EditorStyles.boldLabel);
-            
+
             //check if the mod page needs updating
-            if (GUILayout.Button(modCreated ? "Update Mod Page Data" : "Create Mod Page"))
+            if (modCreated && GUILayout.Button("Update Mod Page Data"))
             {
                 _target.UpdateModPage();
             }
@@ -192,31 +222,43 @@ namespace NervWareSDK.Editor
             {
                 _target.ViewModPage();
             }
-            
-            
-            
-            //publish button
-            EditorGUILayout.Separator();
 
+
+            // next step buttons (create mod page, publish)
             GUILayoutOption[] buttonOptions = new GUILayoutOption[]
             {
-                GUILayout.Height(40), // Make it tall
-                GUILayout.ExpandWidth(true) // Make it fill the available width
-                // Or a fixed width: GUILayout.Width(200)
+                GUILayout.Height(40),
+                GUILayout.ExpandWidth(true)
             };
-            
+
             GUI.backgroundColor = Color.red;
-            
-            EditorGUI.BeginDisabledGroup(_target.modIdCache == -1);
+
+            if (!modCreated && GUILayout.Button("Create Mod Page", buttonOptions))
+            {
+                _target.UpdateModPage();
+            }
+
+
+            //publish button
+
+            EditorGUILayout.Separator();
+
+            GUIContent publishButtonContent = new GUIContent("Publish Mod",
+                !_target.isUploaded
+                    ? "You must upload mod content before publishing!"
+                    : "Publish your mod to make it publicly visible.");
+
+            EditorGUI.BeginDisabledGroup(!_target.isUploaded);
             //check if mod hasn't been published!
-            if (!_target.isPublic && _target.isUploaded && GUILayout.Button("Publish Mod", buttonOptions))
+            if (modCreated && !_target.isPublic && GUILayout.Button(publishButtonContent, buttonOptions))
             {
                 _target.PublishMod();
             }
+
             EditorGUI.EndDisabledGroup();
 
             GUI.backgroundColor = baseColor;
-            
+
             EditorGUILayout.Space();
 
             EditorGUILayout.EndVertical();

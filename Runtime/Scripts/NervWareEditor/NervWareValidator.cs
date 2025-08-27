@@ -44,7 +44,6 @@ namespace NervWareSDK.Editor
                 SetupTagManager();
                 SetupDynamics();
                 SetupQualitySettings();
-                SetupSaintsField();
                 EditorUtility.RequestScriptReload();
                 EditorUtility.DisplayDialog("Project Injection",
                     "Injection completed successfully!", "OK");
@@ -78,11 +77,6 @@ namespace NervWareSDK.Editor
             {
                 Debug.Log("No AutoOpenAddressablesReport found.");
             }
-        }
-
-        public static void SetupSaintsField()
-        {
-            SaintsField.Editor.Utils.SaintsMenu.CreateOrEditSaintsFieldConfig();
         }
 
         public static void SetupDynamics()

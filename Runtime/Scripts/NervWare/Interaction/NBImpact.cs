@@ -68,9 +68,15 @@ namespace NervBox.Interaction
         private NBImpactProperties properties = null;
 
         [SerializeField] private bool useCustomProperties = false;
-        [SerializeField] private AudioClip[] hardImpactClips;
-        [SerializeField] private AudioClip[] softImpactClips;
-        public SurfaceType SurfaceTypeOverride => surfaceTypeOverride;
+        [SerializeField] private AudioClip[] impactClips;
+        public SurfaceType SurfaceTypeOverride
+        {
+            get => surfaceTypeOverride;
+            set => surfaceTypeOverride = value;
+        }
+
+        public static bool ShowMissing { get; set; }
+
         private string ValidateInertiaTensor()
         {
             if (inertiaTensor == Vector3.zero)

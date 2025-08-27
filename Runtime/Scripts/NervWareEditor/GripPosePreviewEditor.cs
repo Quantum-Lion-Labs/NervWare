@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using NervBox.Editor;
 using UnityEditor;
 using UnityEngine;
 using NervBox.Interaction;
@@ -10,7 +11,7 @@ using Object = UnityEngine.Object;
 namespace NervWareSDK.Editor
 {
     [CustomEditor(typeof(NBGripBase), true)]
-    public class GripPosePreviewEditor : UnityEditor.Editor
+    public class GripPosePreviewEditor : NervWareStyledEditor
     {
         private NBGripBase _grip = null;
         private bool _previewActive = true;
@@ -18,15 +19,107 @@ namespace NervWareSDK.Editor
         private bool _showRightPreview = true;
         private HandManager _handManager = null;
         private SerializedProperty _poseProperty;
+        private SerializedProperty _canBeForcedGrabbed;
+        private SerializedProperty _showIndicator;
+        private SerializedProperty _grabRotationLimits;
+        private SerializedProperty _jointBreakForce;
+        private SerializedProperty _holdType;
+        private SerializedProperty _requireAdditionalWristMotion;
+        private SerializedProperty _ignoreCollideWithBody;
+        private SerializedProperty _flipHorizontal;
+        private SerializedProperty _allowFlippingUpAxis;
+        private SerializedProperty _allowFlippingForwardAxis;
+        private SerializedProperty _targetTransform;
+        private SerializedProperty _radius;
+        private SerializedProperty _height;
+        private SerializedProperty _useProceduralPosingFallback;
         private List<HandPose> _handPoses = new List<HandPose>();
         private bool _showAdvancedSettings = false;
 
-        private void OnEnable()
+        protected override void InitializeProperties()
         {
             _grip = (NBGripBase)target;
             _poseProperty = serializedObject.FindProperty("pose");
+            _canBeForcedGrabbed = serializedObject.FindProperty("canBeForceGrabbed");
+            _showIndicator = serializedObject.FindProperty("showIndicator");
+            _grabRotationLimits = serializedObject.FindProperty("grabRotationLimits");
+            _jointBreakForce = serializedObject.FindProperty("jointBreakForce");
+            _holdType = serializedObject.FindProperty("holdType");
+            _requireAdditionalWristMotion = serializedObject.FindProperty("requireAdditionalWristMotion");
+            _ignoreCollideWithBody = serializedObject.FindProperty("<IgnoreCollideWithBody>k__BackingField");
+            _flipHorizontal = serializedObject.FindProperty("flipHorizontal");
+            _allowFlippingUpAxis = serializedObject.FindProperty("allowFlippingUpAxis");
+            _allowFlippingForwardAxis = serializedObject.FindProperty("allowFlippingForwardAxis");
+            _targetTransform = serializedObject.FindProperty("targetTransform");
+            _radius = serializedObject.FindProperty("radius");
+            _height = serializedObject.FindProperty("height");
+            _useProceduralPosingFallback = serializedObject.FindProperty("useProceduralPosingFallback");
             GetHandPoses();
         }
+
+        protected override string GetInspectorName()
+        {
+            var grip = (NBGripBase)target;
+            //NOTE (Alec): I understand this routine is redundant and we could just grab type name and toUpper it.
+            //I wanted to keep this present in case we rename terminology in the future.
+            switch (grip)
+            {
+                case GenericGrip:
+                    return "GENERIC GRIP";
+                case PointGrip:
+                    return "POINT GRIP";
+                case CylinderGrip:
+                    return "CYLINDER GRIP";
+                case SphereGrip:
+                    return "SPHERE GRIP";
+            }
+
+            return "GRIP";
+        }
+
+        protected override void DrawInspector()
+        {
+            DrawSection("INTERACTION SETTINGS", () =>
+            {
+                EditorGUILayout.PropertyField(_canBeForcedGrabbed);
+                EditorGUILayout.PropertyField(_showIndicator);
+            });
+
+            DrawDivider();
+
+            if (_grip is not GenericGrip)
+            {
+                DrawPositioningSettings();
+            }
+
+            DrawDivider();
+
+            _showAdvancedSettings = EditorGUILayout.Foldout(_showAdvancedSettings, "Advanced Settings");
+            if (_showAdvancedSettings)
+            {
+                DrawSection("JOINT SETTINGS", () =>
+                {
+                    EditorGUILayout.PropertyField(_grabRotationLimits);
+                    EditorGUILayout.PropertyField(_jointBreakForce);
+                });
+
+                DrawSection("INTERACTION SETTINGS", () =>
+                {
+                    EditorGUILayout.PropertyField(_holdType);
+                    EditorGUILayout.PropertyField(_requireAdditionalWristMotion);
+                    EditorGUILayout.PropertyField(_ignoreCollideWithBody);
+                });
+
+                DrawSection("HAND POSE SETTINGS", () =>
+                {
+                    _showLeftPreview = GUILayout.Toggle(_showLeftPreview, "Show Left Preview");
+                    _showRightPreview = GUILayout.Toggle(_showRightPreview, "Show Right Preview");
+                    _previewActive = _showLeftPreview || _showRightPreview;
+                    DrawPoseDropDown();
+                });
+            }
+        }
+
 
         private void OnDisable()
         {
@@ -55,62 +148,9 @@ namespace NervWareSDK.Editor
                 }
             }
         }
-
-        public override void OnInspectorGUI()
+        
+        private void OnSceneGUI()
         {
-            if (Application.isPlaying)
-            {
-                return;
-            }
-
-            serializedObject.Update();
-
-
-            EditorGUILayout.Separator();
-            GUILayout.BeginVertical("Interaction Settings", "window");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("canBeForceGrabbed"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("showIndicator"));
-
-            GUILayout.EndVertical();
-
-            EditorGUILayout.Separator();
-
-            if (_grip is not GenericGrip)
-            {
-                DrawPositioningSettings();
-            }
-
-            EditorGUILayout.Separator();
-
-            _showAdvancedSettings = EditorGUILayout.Foldout(_showAdvancedSettings, "Advanced Settings");
-            if (_showAdvancedSettings)
-            {
-                EditorGUILayout.Separator();
-
-                GUILayout.BeginVertical("Hand Joint Settings", "window");
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("grabRotationLimits"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("jointBreakForce"));
-                GUILayout.EndVertical();
-
-                EditorGUILayout.Separator();
-                GUILayout.BeginVertical("Interaction Settings", "window");
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("holdType"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("requireAdditionalWristMotion"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("<IgnoreCollideWithBody>k__BackingField"));
-                GUILayout.EndVertical();
-
-                EditorGUILayout.Separator();
-                GUILayout.BeginVertical("Hand Pose Settings", "window");
-                _showLeftPreview = GUILayout.Toggle(_showLeftPreview, "Show Left Preview");
-                _showRightPreview = GUILayout.Toggle(_showRightPreview, "Show Right Preview");
-                _previewActive = _showLeftPreview || _showRightPreview;
-                DrawPoseDropDown();
-                GUILayout.EndVertical();
-            }
-
-            GUILayout.FlexibleSpace();
-
-
             if (_previewActive && _poseProperty.objectReferenceValue != null)
             {
                 if (_handManager == null)
@@ -135,49 +175,44 @@ namespace NervWareSDK.Editor
             {
                 OnDisable();
             }
-
-            serializedObject.ApplyModifiedProperties();
         }
 
         private void DrawPositioningSettings()
         {
-            GUILayout.BeginVertical("Positioning Settings", "window");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("flipHorizontal"));
-            var up = serializedObject.FindProperty("allowFlippingUpAxis");
-            var fwd = serializedObject.FindProperty("allowFlippingForwardAxis");
-            if (up != null && fwd != null)
+            DrawSection("POSITIONING SETTINGS", () =>
             {
-                EditorGUILayout.PropertyField(up);
-                EditorGUILayout.PropertyField(fwd);
-            }
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("targetTransform"));
-            if (GUILayout.Button("Create Target Transform"))
-            {
-                if (serializedObject.FindProperty("targetTransform").objectReferenceValue == null)
+                EditorGUILayout.PropertyField(_flipHorizontal);
+                if (_allowFlippingUpAxis != null && _allowFlippingForwardAxis != null)
                 {
-                    GameObject go = new GameObject("Target Transform")
-                    {
-                        transform =
-                        {
-                            parent = _grip.transform,
-                            localPosition = Vector3.zero,
-                            localRotation = Quaternion.identity,
-                            localScale = Vector3.one
-                        }
-                    };
-                    serializedObject.FindProperty("targetTransform").objectReferenceValue = go;
+                    EditorGUILayout.PropertyField(_allowFlippingUpAxis);
+                    EditorGUILayout.PropertyField(_allowFlippingForwardAxis);
                 }
-            }
 
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("radius"));
-            var height = serializedObject.FindProperty("height");
-            if (height != null)
-            {
-                EditorGUILayout.PropertyField(height);
-            }
+                EditorGUILayout.PropertyField(_targetTransform);
+                if (_targetTransform.objectReferenceValue == null)
+                {
+                    if (GUILayout.Button("Create Target Transform"))
+                    {
+                        GameObject go = new GameObject("Target Transform")
+                        {
+                            transform =
+                            {
+                                parent = _grip.transform,
+                                localPosition = Vector3.zero,
+                                localRotation = Quaternion.identity,
+                                localScale = Vector3.one
+                            }
+                        };
+                        _targetTransform.objectReferenceValue = go;
+                    }
+                }
 
-            GUILayout.EndVertical();
+                EditorGUILayout.PropertyField(_radius);
+                if (_height != null)
+                {
+                    EditorGUILayout.PropertyField(_height);
+                }
+            });
         }
 
         private void DrawPoseDropDown()
@@ -200,7 +235,7 @@ namespace NervWareSDK.Editor
             EditorGUILayout.EndHorizontal();
             if (_poseProperty.objectReferenceValue == null)
             {
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("useProceduralPosingFallback"));
+                EditorGUILayout.PropertyField(_useProceduralPosingFallback);
             }
         }
     }

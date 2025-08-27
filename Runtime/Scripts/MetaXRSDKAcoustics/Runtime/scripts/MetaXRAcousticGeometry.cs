@@ -75,12 +75,13 @@ internal class MetaXRAcousticGeometry : MonoBehaviour
     [SerializeField]
     [FormerlySerializedAs("relativeFilePath_")]
     private string relativeFilePath = "";
+
+    [SerializeField] private string relativeFilePathBackup;
 #if UNITY_EDITOR
     internal string RelativeFilePath => string.IsNullOrEmpty(relativeFilePath) ? GenerateSuggestedPath() : relativeFilePath;
 #else
     internal string RelativeFilePath => relativeFilePath;
 #endif
-    public string PathGuid = "";
     /// \brief Absolute path to the serialized mesh file that holds the preprocessed mesh geometry.
     /// This path should be absolute and somewhere inside Application.dataPath directory.
     internal string AbsoluteFilePath
@@ -110,7 +111,7 @@ internal class MetaXRAcousticGeometry : MonoBehaviour
     /// The flags for how the mesh is computed.
     [SerializeField]
     internal MeshFlags Flags = MeshFlags.ENABLE_SIMPLIFICATION;
-
+    [SerializeField] public string PathGuid;
     internal bool EnableSimplification
     {
         get => (Flags & MeshFlags.ENABLE_SIMPLIFICATION) != 0;
@@ -937,7 +938,7 @@ internal class MetaXRAcousticGeometry : MonoBehaviour
             return false;
         }
 
-        Debug.Log($"Uploading mesh {name} with {totalVertexCount} vertices");
+        //Debug.Log($"Uploading mesh {name} with {totalVertexCount} vertices");
 
         // Gather the mesh simplification parameters to pass to the upload
         MeshSimplification simplification = new MeshSimplification();
@@ -1155,6 +1156,10 @@ internal class MetaXRAcousticGeometry : MonoBehaviour
         }
 
         FixPathCaseMismatch();
+#if UNITY_EDITOR
+        string guid = UnityEditor.AssetDatabase.AssetPathToGUID("Assets/" + RelativeFilePath);
+        PathGuid = guid;
+#endif
     }
 
     [NonSerialized]
@@ -1226,7 +1231,7 @@ internal class MetaXRAcousticGeometry : MonoBehaviour
             gizmoMesh.SetSubMesh(0, desc);
             gizmoMesh.RecalculateNormals();
 
-            Debug.Log($"Simplified mesh with {vertexCount} vertices", gameObject);
+            //Debug.Log($"Simplified mesh with {vertexCount} vertices", gameObject);
         }
     }
 
@@ -1448,6 +1453,9 @@ internal class MetaXRAcousticGeometry : MonoBehaviour
         if (current.parent == null)
             return current.name;
 
+        current.name = current.name.Replace('*', '-');
+        current.name = current.name.Replace('[', '(');
+        current.name = current.name.Replace(']', ')');
         return GenerateFileName(current.parent) + "-" + current.name;
     }
 

@@ -6,6 +6,7 @@ using System;
 
 namespace FishNet.Object
 {
+    [AddComponentMenu("")]
     public partial class NetworkObject : MonoBehaviour
     {
     }
