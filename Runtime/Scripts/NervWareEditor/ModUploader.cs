@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ModIO;
+using NervWareSDK.Editor;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
@@ -32,6 +33,15 @@ namespace NervWareSDK.Packaging
             string[] tags = new[] { _data.modType.ToString() }
                 .Concat(_data.categoryTags ?? Enumerable.Empty<string>())
                 .ToArray();
+
+            string metaData = "";
+            if (_data.modAsset != null && _data.modAsset is GameObject obj)
+            {
+                _data.halfExtents = BoundaryCalculator.CalculateExtents(obj);
+                Dictionary<string, string> metaDict = new Dictionary<string, string>();
+                metaDict.Add("bounds", _data.halfExtents.ToString());
+                metaData = JsonConvert.SerializeObject(metaDict);
+            }
             
             ModProfileDetails details = new ModProfileDetails
             {
@@ -40,7 +50,8 @@ namespace NervWareSDK.Packaging
                 summary = _data.modSummary,
                 description = _data.modDescription,
                 tags = tags, 
-                visible = false
+                visible = false,
+                metadata = JsonConvert.SerializeObject(metaData)
             };
             
             if (_data.modIdCache <= 0)
@@ -115,6 +126,7 @@ namespace NervWareSDK.Packaging
                 }
 
                 Debug.Log("Updated mod profile");
+                EditorUtility.SetDirty(_data);
                 EditorUtility.DisplayDialog("Mod Profile Update",
                     $"Successfully updated a mod page for {_data.modName}", "ok");
             }
@@ -163,6 +175,7 @@ namespace NervWareSDK.Packaging
             }
 
             Debug.Log("Published mod.");
+            EditorUtility.SetDirty(_data);
             EditorUtility.DisplayDialog("Mod Publish Succeeded",
                 $"Successfully published {_data.modName}!", "ok");
         }
@@ -315,13 +328,13 @@ namespace NervWareSDK.Packaging
             }
 
             Debug.Log("Uploaded Android File");
-
             EditorUtility.DisplayDialog("Mod Upload Finished",
                 "Mod uploaded successfully!",
                 "Ok");
             _data.progress = 0f;
             _data.progressTitle = "";
             _data.isUploaded = true;
+            EditorUtility.SetDirty(_data);
         }
 
         private static Texture2D MakeTempLogo(Texture2D texture)

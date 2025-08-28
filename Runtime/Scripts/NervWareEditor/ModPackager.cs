@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using ModIO;
 using NervBox.Interaction;
 using NervBox.SDK;
+using NervWareSDK.Editor;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
@@ -54,19 +55,7 @@ namespace NervWareSDK.Packaging
             {
                 //todo: avatar
                 GameObject obj = _data.modAsset as GameObject;
-                var renderers = obj.GetComponentsInChildren<Renderer>();
-                Bounds b = new Bounds(Vector3.zero, Vector3.zero);
-                foreach (var renderer in renderers)
-                {
-                    if (renderer is SkinnedMeshRenderer or MeshRenderer)
-                    {
-                        b.Encapsulate(renderer.bounds.min);
-                        b.Encapsulate(renderer.bounds.max);
-                    }
-                }
-
-                b.center = Vector3.zero;
-                _data.halfExtents = b.extents;
+                _data.halfExtents = BoundaryCalculator.CalculateExtents(obj);
                 _data.modType = ModType.Spawnable;
             }
 

@@ -83,6 +83,7 @@ namespace NervWareSDK.Editor
                 EditorGUILayout.TextField("Mod ID", _target.modIdCache.ToString());
             }
 
+            EditorGUILayout.Vector3Field("Mod Bounds", _target.halfExtents);
             EditorGUI.EndDisabledGroup();
 
 
