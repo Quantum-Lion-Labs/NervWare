@@ -1,0 +1,6 @@
+﻿<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="main-container">
+        <ui:TextField name="search-bar" placeholder-text="Search for item..."/>
+        <ui:ListView name="results-list"/>
+    </ui:VisualElement>
+</ui:UXML>

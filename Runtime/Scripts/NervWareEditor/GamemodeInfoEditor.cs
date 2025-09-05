@@ -43,6 +43,8 @@ namespace NervWareSDK.Editor
                 if (GUILayout.Button("Add Spawn Point"))
                 {
                     GameObject newSpawn = new GameObject("Spawn Point");
+                    newSpawn.transform.parent = Info.transform;
+                    newSpawn.transform.localPosition = new Vector3(0.2f, 0.2f, 0.2f); //non-centered so it's less confusing
                     int size = innerList.arraySize;
                     innerList.InsertArrayElementAtIndex(size);
                     innerList.GetArrayElementAtIndex(size).objectReferenceValue = newSpawn.transform;
@@ -59,7 +61,7 @@ namespace NervWareSDK.Editor
         {
             if (Info.spawnPoints.Count == 0)
             {
-                Info.spawnPoints.Add(new GamemodeInfo.SpawnList());
+                return;
             }
 
             foreach (var transform in Info.spawnPoints[0].spawns)

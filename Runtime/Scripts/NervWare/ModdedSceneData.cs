@@ -4,15 +4,9 @@ using UnityEngine;
 
 namespace NervBox.SDK
 {
-    [DefaultExecutionOrder(short.MinValue - 10)]
+    [DefaultExecutionOrder(int.MinValue)]
     public class ModdedSceneData : MonoBehaviour
     {
         [SerializeField]  private List<NetworkedInteractable> interactables = new();
-
-        public void PopulateInteractables()
-        {
-            interactables.Clear();
-            interactables.AddRange(FindObjectsByType<NetworkedInteractable>(FindObjectsSortMode.None));
-        }
     }
 }

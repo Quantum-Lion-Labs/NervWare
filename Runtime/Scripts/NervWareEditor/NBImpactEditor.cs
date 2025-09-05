@@ -21,6 +21,7 @@ namespace NervWareSDK.Editor
         private SerializedProperty _properties;
         private SerializedProperty _overrideSurfaceHardness;
         private SerializedProperty _impactClips;
+        private SerializedProperty _impactVolume;
         protected override void InitializeProperties()
         {
             _overrideSurfaceType = serializedObject.FindProperty("overrideSurfaceType");
@@ -29,6 +30,7 @@ namespace NervWareSDK.Editor
             _properties = serializedObject.FindProperty("properties");
             _overrideSurfaceHardness = serializedObject.FindProperty("overrideSurfaceHardness");
             _impactClips = serializedObject.FindProperty("impactClips");
+            _impactVolume = serializedObject.FindProperty("impactClipVolume");
         }
 
         protected override string GetInspectorName()
@@ -115,6 +117,10 @@ namespace NervWareSDK.Editor
                 EditorGUI.indentLevel++;
                 EditorGUILayout.PropertyField(_impactClips);
                 EditorGUI.indentLevel--;
+                if (_impactClips.isArray && _impactClips.arraySize > 0)
+                {
+                    EditorGUILayout.PropertyField(_impactVolume);
+                }
             });
 
         }

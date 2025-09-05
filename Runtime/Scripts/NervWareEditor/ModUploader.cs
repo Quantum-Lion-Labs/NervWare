@@ -51,8 +51,10 @@ namespace NervWareSDK.Packaging
                 description = _data.modDescription,
                 tags = tags, 
                 visible = false,
-                metadata = JsonConvert.SerializeObject(metaData)
+                metadata = metaData
             };
+
+            ModIOUnity.InitializeForUser("default");
             
             if (_data.modIdCache <= 0)
             {

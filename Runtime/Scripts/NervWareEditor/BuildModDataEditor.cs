@@ -164,6 +164,12 @@ namespace NervWareSDK.Editor
                 {
                     GUILayout.Label(assetPreview, GUILayout.Width(128), GUILayout.Height(128));
                 }
+
+                string text = modAsset is SceneAsset ? "Open Scene" : "Open in Prefab Viewer";
+                if (GUILayout.Button(text))
+                {
+                    AssetDatabase.OpenAsset(modAsset);
+                }
             }
 
             string prefabError = _target.ValidatePrefab(modAsset);

@@ -44,6 +44,7 @@ public class NBImpactOverlay : Overlay
         outerButtonRow.Add(swatch);
         outerButtonRow.Add(outLabel);
         _root.Add(outerButtonRow);
+        _paletteButtons.Clear();
         foreach (var pair in NBImpactPainter.SurfaceColors)
         {
             SurfaceType surface = pair.Key;

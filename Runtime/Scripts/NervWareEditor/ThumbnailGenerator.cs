@@ -256,6 +256,7 @@ namespace NervWareSDK
 
             _renderCamera.clearFlags = CameraClearFlags.Skybox;
             _renderCamera.backgroundColor = Color.clear;
+            _renderCamera.useOcclusionCulling = false;
 
             // RenderTexture for preview
             _previewTexture = new RenderTexture(_previewSize.x, _previewSize.y, 24, RenderTextureFormat.ARGB32);
@@ -405,6 +406,7 @@ namespace NervWareSDK
             {
                 tempCamera.clearFlags = CameraClearFlags.Skybox;
                 tempCamera.backgroundColor = Color.clear;
+                tempCamera.useOcclusionCulling = false;
 
                 tempCameraObj.transform.position = _renderCamera.gameObject.transform.position;
                 tempCameraObj.transform.rotation = _renderCamera.gameObject.transform.rotation;

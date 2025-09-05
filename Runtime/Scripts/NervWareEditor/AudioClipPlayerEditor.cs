@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using System;
 using UnityEditor;
 using UnityEngine;
@@ -10,8 +9,9 @@ namespace NervBox
     {
         private SerializedProperty _audioClipProp;
         private SerializedProperty _loopProp;
-        private SerializedProperty _loopSpatialModeProp;
+        private SerializedProperty _spatialModeProp;
 
+        private SerializedProperty _clipVolumeProp;
         private SerializedProperty _playOnAwakeProp;
         private SerializedProperty _playOnStartProp;
         private SerializedProperty _playOnEnableProp;
@@ -44,7 +44,7 @@ namespace NervBox
         {
             _audioClipProp = serializedObject.FindProperty("audioClip");
             _loopProp = serializedObject.FindProperty("loop");
-            _loopSpatialModeProp = serializedObject.FindProperty("loopSpatialMode");
+            _spatialModeProp = serializedObject.FindProperty("spatialMode");
 
             _playOnAwakeProp = serializedObject.FindProperty("playOnAwake");
             _playOnStartProp = serializedObject.FindProperty("playOnStart");
@@ -54,6 +54,7 @@ namespace NervBox
 
             _stopOnDisableProp = serializedObject.FindProperty("stopOnDisable");
             _stopOnDestroyProp = serializedObject.FindProperty("stopOnDestroy");
+            _clipVolumeProp = serializedObject.FindProperty("clipVolume");
 
 
             _directivityProp = serializedObject.FindProperty("directivityIntensity");
@@ -193,13 +194,11 @@ namespace NervBox
 
                 EditorGUILayout.PropertyField(_audioClipProp, new GUIContent("Audio Clip"));
                 EditorGUILayout.PropertyField(_loopProp, new GUIContent("Loop Audio"));
-
-                if (_loopProp.boolValue)
-                {
-                    GUI.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 1.0f);
-                    EditorGUILayout.PropertyField(_loopSpatialModeProp, new GUIContent("Loop Spatial Mode"));
-                    GUI.backgroundColor = Color.white;
-                }
+                EditorGUILayout.PropertyField(_clipVolumeProp, new GUIContent("Audio Clip Volume"));
+                
+                GUI.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 1.0f);
+                EditorGUILayout.PropertyField(_spatialModeProp, new GUIContent("Spatial Mode"));
+                GUI.backgroundColor = Color.white;
 
                 EditorGUILayout.EndVertical();
             }
@@ -242,7 +241,7 @@ namespace NervBox
             EditorGUILayout.Space(10);
 
             {
-                if (_loopProp.boolValue && _loopSpatialModeProp.enumValueIndex == 1)
+                if (_spatialModeProp.enumValueIndex == 1)
                 {
                     //don't draw advanced settings for ambient sounds.
                 }
@@ -281,6 +280,10 @@ namespace NervBox
 
         private void DrawToggle(SerializedProperty property, string label, string toolTip)
         {
+            if (property == null)
+            {
+                return;
+            }
             GUIContent content = new GUIContent(label, toolTip);
             GUI.backgroundColor = property.boolValue
                 ? _toggleButton.onNormal.background.GetPixel(0, 0)
@@ -294,4 +297,3 @@ namespace NervBox
         }
     }
 }
-#endif

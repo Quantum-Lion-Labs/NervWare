@@ -69,6 +69,7 @@ namespace NervBox.Interaction
 
         [SerializeField] private bool useCustomProperties = false;
         [SerializeField] private AudioClip[] impactClips;
+        [SerializeField] [Range(0f, 1f)] private float impactClipVolume = 1.0f;
         public SurfaceType SurfaceTypeOverride
         {
             get => surfaceTypeOverride;

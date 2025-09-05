@@ -196,7 +196,7 @@ namespace NervWareSDK.Packaging
                     return 0;
                 }
                 pathGuid.SetValue(metaObject, guid);
-                Debug.Log($"Set Path GUID {pathGuid.GetValue(metaObject) as string}");
+            
                 metaObject.GetType()
                     .GetField(relativePathBackupName,
                         BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic)
