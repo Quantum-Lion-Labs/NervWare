@@ -34,15 +34,6 @@ namespace NervWareSDK.Packaging
                 .Concat(_data.categoryTags ?? Enumerable.Empty<string>())
                 .ToArray();
 
-            string metaData = "";
-            if (_data.modAsset != null && _data.modAsset is GameObject obj)
-            {
-                _data.halfExtents = BoundaryCalculator.CalculateExtents(obj);
-                Dictionary<string, string> metaDict = new Dictionary<string, string>();
-                metaDict.Add("bounds", _data.halfExtents.ToString());
-                metaData = JsonConvert.SerializeObject(metaDict);
-            }
-            
             ModProfileDetails details = new ModProfileDetails
             {
                 logo = logo,
@@ -50,10 +41,17 @@ namespace NervWareSDK.Packaging
                 summary = _data.modSummary,
                 description = _data.modDescription,
                 tags = tags, 
-                visible = false,
-                metadata = metaData
+                visible = false
             };
-
+            
+            if (_data.modAsset != null && _data.modAsset is GameObject obj)
+            {
+                _data.halfExtents = BoundaryCalculator.CalculateExtents(obj);
+                Dictionary<string, string> metaData = new Dictionary<string, string>();
+                metaData.Add("bounds", _data.halfExtents.ToString());
+                details.metadata = JsonConvert.SerializeObject(metaData);
+            }
+            
             ModIOUnity.InitializeForUser("default");
             
             if (_data.modIdCache <= 0)

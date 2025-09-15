@@ -15,8 +15,15 @@ namespace NervWareSDK.Editor
         private bool _open;
         private void OnDestroy()
         {
-            DestroyImmediate(LeftHand.gameObject);
-            DestroyImmediate(RightHand.gameObject);
+            if (LeftHand)
+            {
+                DestroyImmediate(LeftHand.gameObject);
+            }
+
+            if (RightHand)
+            {
+                DestroyImmediate(RightHand.gameObject);
+            }
         }
 
         private void Update()

@@ -54,6 +54,19 @@ namespace NervWareSDK.Editor
             _radius = serializedObject.FindProperty("radius");
             _height = serializedObject.FindProperty("height");
             _useProceduralPosingFallback = serializedObject.FindProperty("useProceduralPosingFallback");
+            if (_handManager == null)
+            {
+                GameObject manager = Resources.Load<GameObject>(
+                    "Hand Manager");
+                var obj = GameObject.Instantiate(manager);
+                _handManager = obj.GetComponent<HandManager>();
+                _handManager.LeftHand.Toggle(_showLeftPreview);
+                _handManager.RightHand.Toggle(_showRightPreview);
+                _handManager.UpdateHands(_poseProperty.objectReferenceValue as HandPose, _grip, false);
+                obj.hideFlags = HideFlags.HideAndDontSave;
+                _handManager.LeftHand.gameObject.hideFlags = HideFlags.HideAndDontSave;
+                _handManager.RightHand.gameObject.hideFlags = HideFlags.HideAndDontSave;
+            }
             GetHandPoses();
         }
 
@@ -151,29 +164,11 @@ namespace NervWareSDK.Editor
         
         private void OnSceneGUI()
         {
-            if (_previewActive && _poseProperty.objectReferenceValue != null)
+            if (_previewActive && _handManager && _poseProperty.objectReferenceValue != null)
             {
-                if (_handManager == null)
-                {
-                    GameObject manager = Resources.Load<GameObject>(
-                        "Hand Manager");
-                    var obj = GameObject.Instantiate(manager);
-                    _handManager = obj.GetComponent<HandManager>();
-                    _handManager.LeftHand.Toggle(_showLeftPreview);
-                    _handManager.RightHand.Toggle(_showRightPreview);
-                    _handManager.UpdateHands(_poseProperty.objectReferenceValue as HandPose, _grip, false);
-                    _handManager.gameObject.hideFlags = HideFlags.HideAndDontSave;
-                    _handManager.LeftHand.gameObject.hideFlags = HideFlags.HideAndDontSave;
-                    _handManager.RightHand.gameObject.hideFlags = HideFlags.HideAndDontSave;
-                }
-
                 _handManager.LeftHand.Toggle(_showLeftPreview);
                 _handManager.RightHand.Toggle(_showRightPreview);
                 _handManager.UpdateHands(_poseProperty.objectReferenceValue as HandPose, _grip, false);
-            }
-            else
-            {
-                OnDisable();
             }
         }
 
@@ -230,7 +225,8 @@ namespace NervWareSDK.Editor
                     _poseProperty.serializedObject.ApplyModifiedProperties();
                 }), "Hand Poses");
             }
-
+            
+           
 
             EditorGUILayout.EndHorizontal();
             if (_poseProperty.objectReferenceValue == null)

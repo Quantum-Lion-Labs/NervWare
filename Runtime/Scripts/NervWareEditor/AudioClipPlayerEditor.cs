@@ -173,6 +173,28 @@ namespace NervBox
             return result;
         }
 
+        public void OnSceneGUI()
+        {
+            var player = target as AudioClipPlayer;
+
+            if (!player)
+            {
+                return;
+            }
+
+            serializedObject.Update();
+
+            float minDist = _layer1MinDistanceProp.floatValue;
+            float maxDist = _layer1MaxDistanceProp.floatValue;
+
+            minDist = Handles.RadiusHandle(Quaternion.identity, player.transform.position, minDist);
+            maxDist = Handles.RadiusHandle(Quaternion.identity, player.transform.position, maxDist);
+
+            _layer1MinDistanceProp.floatValue = minDist;
+            _layer1MaxDistanceProp.floatValue = maxDist;
+            serializedObject.ApplyModifiedProperties();
+        }
+
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -195,7 +217,7 @@ namespace NervBox
                 EditorGUILayout.PropertyField(_audioClipProp, new GUIContent("Audio Clip"));
                 EditorGUILayout.PropertyField(_loopProp, new GUIContent("Loop Audio"));
                 EditorGUILayout.PropertyField(_clipVolumeProp, new GUIContent("Audio Clip Volume"));
-                
+
                 GUI.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 1.0f);
                 EditorGUILayout.PropertyField(_spatialModeProp, new GUIContent("Spatial Mode"));
                 GUI.backgroundColor = Color.white;
@@ -256,7 +278,18 @@ namespace NervBox
                         if (_viewAdvancedSettings)
                         {
                             EditorGUILayout.PropertyField(_directivityProp);
-                            EditorGUILayout.PropertyField(_earlyReflectionsSendProp);
+                            float currentNormalValue = _earlyReflectionsSendProp.floatValue;
+                            float max = 60.0f;
+                            float min = -20.0f;
+                            float displayValue = (currentNormalValue * (max - min)) + min;
+                            EditorGUI.BeginChangeCheck();
+                            float newDisplayValue = EditorGUILayout.Slider("Early Reflections Send (db)",
+                                displayValue, min, max);
+                            if (EditorGUI.EndChangeCheck())
+                            {
+                                float newValue = (newDisplayValue - min) / (max - min);
+                                _earlyReflectionsSendProp.floatValue = Mathf.Clamp01(newValue);
+                            }
                             EditorGUILayout.PropertyField(_layer1MinDistanceProp);
                             EditorGUILayout.PropertyField(_layer1MaxDistanceProp);
                             EditorGUILayout.PropertyField(_volumetricRadiusProp);
@@ -284,6 +317,7 @@ namespace NervBox
             {
                 return;
             }
+
             GUIContent content = new GUIContent(label, toolTip);
             GUI.backgroundColor = property.boolValue
                 ? _toggleButton.onNormal.background.GetPixel(0, 0)
